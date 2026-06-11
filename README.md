@@ -14,6 +14,22 @@ around that: times are rendered through the `Asia/Riyadh` timezone, matches are 
 under the correct Riyadh calendar day, and after-midnight games get a clear `🌙 night`
 badge so a 03:00 kickoff is never ambiguous about which day it belongs to.
 
+## Companion features
+
+- **Follow teams** — tap the star on any team to pin it (Saudi Arabia is pinned by
+  default). Pinned teams get a "Your teams" strip at the top of Matches showing each one's
+  next match, and their rows are highlighted across Matches, Groups and Bracket. Stored in
+  `localStorage`.
+- **Now / Next pill** — a floating pill shows the live match (score) or a countdown to the
+  next kickoff, and taps back to it. Live results refresh in-browser during match windows
+  without a reload. See [`docs/live-data-decision.md`](docs/live-data-decision.md) for why
+  there is no elapsed-minute (no free, keyless source provides one accurately).
+- **Group drama** — group tables show "Through / Out / Plays for 2nd"-style tags and a
+  "Matchday X of 3" marker, derived from the standings math.
+- **Installable PWA** — add to Home Screen for an app-like, offline-capable experience. The
+  shell is cached cache-first; `data/tournament.json` is **network-first**, so auto-updated
+  results are never frozen by the cache.
+
 ## How it works
 
 - **Static site** — vanilla HTML/CSS/JS, no build step. GitHub Pages serves it from the

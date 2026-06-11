@@ -1,0 +1,16 @@
+{
+  "name": "World Cup 2026 · Riyadh time",
+  "short_name": "WC 2026",
+  "description": "Every 2026 FIFA World Cup match in Riyadh time, with flags, live scores and an auto-filling bracket.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07090e",
+  "theme_color": "#07090e",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -18,8 +18,9 @@ export function hasScore(m) {
 }
 
 export function displayStatus(m, now = Date.now()) {
-  if (m.status === 'finished' || hasScore(m)) return 'finished';
+  // an explicit live flag wins even when a running score is present
   if (m.status === 'live') return 'live';
+  if (m.status === 'finished' || hasScore(m)) return 'finished';
   const ko = Date.parse(m.kickoff_utc);
   if (Number.isNaN(ko)) return 'upcoming';
   if (now >= ko && now < ko + LIVE_WINDOW_MS) return 'live';
@@ -107,6 +108,57 @@ export function computeThirds(standings) {
     top8,
     qualifiedGroups: allComplete ? new Set(top8.map((t) => t.group)) : null,
   };
+}
+
+// --- qualification drama ---------------------------------------------------
+// Per group: how many matchdays are done, and a status tag per team derived
+// purely from the points math. Tags never over-claim: a team is only "Through"
+// once it is mathematically safe in the top 2, only "Out" once it cannot even
+// finish 3rd (4th place never advances). Third place is left as a live watch
+// because whether a 3rd qualifies depends on the other groups.
+export function groupContext(standings, thirds) {
+  const out = {};
+  for (const [g, s] of Object.entries(standings)) {
+    const arr = s.table;
+    const matchesPlayed = arr.reduce((n, t) => n + t.P, 0) / 2;
+    const currentMd = matchesPlayed === 0 ? 0 : Math.min(3, Math.ceil(matchesPlayed / 2));
+    const oMax = (t) => t.Pts + 3 * (3 - t.P);
+    const tags = {};
+
+    arr.forEach((t, i) => {
+      if (s.complete) {
+        if (i < 2) tags[t.team.name] = { label: 'Through', kind: 'through' };
+        else if (i === 2) {
+          if (thirds.qualifiedGroups) {
+            tags[t.team.name] = thirds.qualifiedGroups.has(g)
+              ? { label: 'Through', kind: 'through' }
+              : { label: 'Out', kind: 'out' };
+          } else tags[t.team.name] = { label: 'Best 3rd?', kind: 'watch' };
+        } else tags[t.team.name] = { label: 'Out', kind: 'out' };
+        return;
+      }
+      if (matchesPlayed === 0) { tags[t.team.name] = { label: '', kind: '' }; return; }
+      const others = arr.filter((x) => x !== t);
+      const canOvertake = others.filter((o) => oMax(o) > t.Pts).length; // could finish above me
+      const beyondMyReach = others.filter((o) => o.Pts > oMax(t)).length; // already above my ceiling
+      if (canOvertake === 0) tags[t.team.name] = { label: '1st', kind: 'through' };
+      else if (canOvertake <= 1) tags[t.team.name] = { label: 'Through', kind: 'through' };
+      else if (beyondMyReach >= 3) tags[t.team.name] = { label: 'Out', kind: 'out' };
+      else if (beyondMyReach >= 2) tags[t.team.name] = { label: '3rd hope', kind: 'watch' };
+      else tags[t.team.name] = { label: '', kind: '' };
+    });
+
+    // If the group winner is already locked, frame the rest as the 2nd-place race.
+    const winnerLocked = arr.some((t) => tags[t.team.name]?.label === '1st');
+    if (winnerLocked && !s.complete) {
+      arr.forEach((t) => {
+        if (tags[t.team.name].kind === '') tags[t.team.name] = { label: 'Plays for 2nd', kind: 'watch' };
+      });
+    }
+
+    out[g] = { matchesPlayed, currentMd, complete: s.complete, tags };
+  }
+  return out;
 }
 
 // Assign qualifying third-placed groups to the eight R32 "3rd Group X/Y/.."
