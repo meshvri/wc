@@ -158,7 +158,7 @@ async function fromSportsDB(key) {
 
 // --- merge ------------------------------------------------------------------
 async function main() {
-  const token = process.env.FOOTBALL_DATA_TOKEN;
+  const token = (process.env.FOOTBALL_DATA_TOKEN || '').trim() || undefined;
   const sdbKey = process.env.THESPORTSDB_KEY || '3';
 
   let events = null, source = null;
