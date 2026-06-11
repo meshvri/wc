@@ -59,13 +59,24 @@ the actual winner, not stall on a level score.
   group results by team pair but **cannot resolve knockout ties**. It is the fixtures/back-up
   source only.
 
-### Coverage proof status
-`football-data.org` free-tier WC-2026 access is verified by running the cron with the token
-and confirming `Source: football-data.org` plus returned WC-2026 matches (see the Action log /
-the committed `data/tournament.json` `meta.source`). Today is the opening day, so **no
-knockout has been played yet** — a live penalty `score` object cannot be sampled until the
-Round of 32 (28 Jun). The v4 `score` schema above is the documented contract; correctness when
-those results arrive is guaranteed by `scripts/test-knockout.mjs` and the safety net below.
+### Coverage proof status — VERIFIED (2026-06-11)
+A valid `football-data.org` token was tested directly:
+- `GET /v4/competitions/WC/matches` → **HTTP 200, 104 matches, season 2026**, with every stage
+  present: `GROUP_STAGE, LAST_32, LAST_16, QUARTER_FINALS, SEMI_FINALS, THIRD_PLACE, FINAL`.
+- All **32 knockout fixtures map one-to-one** onto our bracket slots by stage + nearest
+  kickoff (no collisions), and all 72 group fixtures are present — so live results overlay the
+  correct slot and the engine advances the right team.
+- The cron now logs `Source: football-data.org · 104 events seen`; committed
+  `meta.source = "football-data.org"`.
+- **Free-tier limits found:** historical seasons are gated (`?season=2022` → HTTP 403), and
+  today is the opening day (all matches `TIMED`, `played: 0`), so a real penalty `score`
+  object cannot be sampled until the Round of 32 (28 Jun). The v4 `score` schema above is the
+  documented contract; the engine chain is proven against it by `scripts/test-knockout.mjs`.
+
+**Also evaluated and rejected: API-Football (api-sports.io) free tier** — its World Cup league
+lists season 2026 in metadata, but `GET /fixtures?league=1&season=2026` returns
+`"Free plans do not have access to this season, try from 2022 to 2024."` (0 fixtures). It
+cannot serve the 2026 tournament on the free plan, so it is not wired in.
 
 ### Safety net (source-agnostic)
 If any source reports a knockout as finished and level but provides **no winner**, the updater
