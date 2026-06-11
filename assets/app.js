@@ -599,7 +599,7 @@ function goToMatch(id) {
 }
 
 // === Now / Next pill =======================================================
-let pillEl, pillTimer, pillIO, PILL_AWAY = false;
+let pillEl, pillTimer, pillIO;
 const flagMini = (s) => (s && s.code ? `<img class="npflag" src="${flagURL(s.code)}" alt="" width="20" height="15">` : '');
 const nameOf = (s) => (s.placeholder ? 'TBD' : s.name);
 
@@ -635,20 +635,36 @@ function setupNowPill() {
   pillTimer = setInterval(updateNowPill, 30000);
 }
 
+function todaySection() {
+  const view = $('#view-matches');
+  if (!view) return null;
+  const tk = todayKey();
+  return view.querySelector(`[data-day="${CSS.escape(tk)}"]`)
+    || [...view.querySelectorAll('[data-day]')].find((s) => s.dataset.day >= tk)
+    || null;
+}
+
+// "away" = today's slate is NOT within the comfortable reading band.
+function isTodayAway() {
+  const sec = todaySection();
+  if (!sec) return false;
+  const r = sec.getBoundingClientRect();
+  if (!r.height) return false; // not laid out yet (avoids a pre-layout false positive)
+  const bar = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bar-h'), 10) || 120;
+  // away only when today's slate is fully above the bar (scrolled past) or fully
+  // below the viewport (not yet reached) — robust to the bar + strip offset.
+  return r.bottom < bar + 24 || r.top > window.innerHeight - 8;
+}
+
+// IntersectionObserver just nudges the pill to re-evaluate on scroll crossings;
+// the actual show/hide decision is geometric (updateNowPill -> isTodayAway).
 function observePillVisibility() {
   if (pillIO) pillIO.disconnect();
-  const view = $('#view-matches');
-  const tk = todayKey();
-  let target = view.querySelector(`[data-day="${CSS.escape(tk)}"]`);
-  if (!target) {
-    const all = [...view.querySelectorAll('[data-day]')];
-    target = all.find((s) => s.dataset.day >= tk) || all[all.length - 1];
-  }
+  const target = todaySection();
   if (!target) return;
   const bar = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bar-h'), 10) || 120;
-  pillIO = new IntersectionObserver((es) => {
-    for (const e of es) { PILL_AWAY = !e.isIntersecting; updateNowPill(); }
-  }, { rootMargin: `-${bar}px 0px -45% 0px`, threshold: 0 });
+  pillIO = new IntersectionObserver(() => updateNowPill(),
+    { rootMargin: `-${bar}px 0px -45% 0px`, threshold: [0, 1] });
   pillIO.observe(target);
 }
 
@@ -675,7 +691,7 @@ function updateNowPill() {
   }
   pillEl.dataset.go = m.id;
   const matchesTab = !$('#view-matches').hidden;
-  pillEl.hidden = !(kind === 'live' || (PILL_AWAY && matchesTab));
+  pillEl.hidden = !(kind === 'live' || (matchesTab && isTodayAway()));
 }
 
 // === live self-refresh (own JSON, network-first) ===========================

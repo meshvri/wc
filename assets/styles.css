@@ -488,6 +488,7 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad) 64px; }
 .pincard .pc-sub .lv { color: var(--live); font-weight: 800; }
 
 /* ───────────────────────── now / next pill ───────────────────────── */
+.nowpill[hidden] { display: none; }
 .nowpill {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 60;
