@@ -20,12 +20,22 @@ const ROUND_SHORT = { r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third: '3RD', 
 const KO_ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 
 // --- Riyadh time helpers ---------------------------------------------------
-const fmtTime = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false });
+const fmtTime = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true });
 const fmtParts = new Intl.DateTimeFormat('en-GB', {
   timeZone: TZ, weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
 });
 const fmtDayLabel = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short' });
 const fmtChip = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short', day: 'numeric' });
+
+// Split a Riyadh 12-hour time into the "h:mm" body and the "AM/PM" suffix so
+// the row can render the suffix smaller (scoreboard style) and never overflow.
+function timeParts(iso) {
+  const parts = fmtTime.formatToParts(new Date(iso));
+  const ap = parts.find((p) => p.type === 'dayPeriod')?.value || '';
+  const hm = parts.filter((p) => ['hour', 'minute', 'literal'].includes(p.type))
+    .map((p) => p.value).join('').trim();
+  return { hm, ap };
+}
 
 function riyadhParts(iso) {
   const map = {};
@@ -152,7 +162,8 @@ function matchRow(m, isNext) {
 
   // left: kickoff time + late badge
   const ko = el('div', 'kotime');
-  ko.appendChild(el('div', 't tnum', fmtTime.format(new Date(m.kickoff_utc))));
+  const tp = timeParts(m.kickoff_utc);
+  ko.appendChild(el('div', 't tnum', `${tp.hm}<span class="ap">${tp.ap}</span>`));
   const stageMeta = m.stage === 'group' ? `Group ${m.group}` : ROUND_SHORT[m.stage];
   ko.appendChild(el('div', 'meta', `#${m.id} · ${stageMeta}`));
   const h = riyadhHour(m.kickoff_utc);
@@ -335,8 +346,8 @@ function renderUpdated() {
   const u = DATA.meta.updated_utc;
   const node = $('#updated');
   if (u) {
-    const f = new Intl.DateTimeFormat('en-GB', {
-      timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+    const f = new Intl.DateTimeFormat('en-US', {
+      timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true,
     });
     node.innerHTML = `Live results last synced <b>${f.format(new Date(u))}</b> Riyadh · ${DATA.meta.total_matches} matches`;
   } else {

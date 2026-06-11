@@ -227,7 +227,12 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad) 64px; }
 /* left time block */
 .kotime { text-align: left; }
 .kotime .t {
-  font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+  font-size: 17px; font-weight: 700; letter-spacing: -0.01em;
+  white-space: nowrap; line-height: 1.05;
+}
+.kotime .t .ap {
+  font-size: 10.5px; font-weight: 700; color: var(--text-3);
+  margin-left: 3px; letter-spacing: 0.02em;
 }
 .kotime .meta {
   font-size: 10.5px; font-weight: 600; color: var(--text-3);
