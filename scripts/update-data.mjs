@@ -108,7 +108,10 @@ async function fromFootballData(token) {
   const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches', {
     headers: { 'X-Auth-Token': token },
   });
-  if (!res.ok) throw new Error(`football-data ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`football-data ${res.status}: ${body.slice(0, 200)}`);
+  }
   const json = await res.json();
   const out = [];
   for (const m of json.matches || []) {
