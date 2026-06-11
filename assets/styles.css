@@ -310,6 +310,8 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad) 64px; }
 @media (prefers-reduced-motion: reduce) { .pill.live .dot { animation: none; } }
 .pill.ft { color: var(--text-2); background: var(--surface-2); border: 1px solid var(--line-2); }
 .pill.grp { color: var(--text-3); background: transparent; border: 1px solid var(--line); }
+.pill.pending { color: var(--gold); background: rgba(246, 200, 99, 0.12); border: 1px solid rgba(246, 200, 99, 0.32); }
+.match[data-status='pending'] { border-color: rgba(246, 200, 99, 0.45); }
 .venue { font-size: 10.5px; color: var(--text-3); text-align: right; max-width: 110px; }
 
 /* round label divider for knockout list */
@@ -410,6 +412,8 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad) 64px; }
   border-radius: var(--r-sm); padding: 8px 10px;
 }
 .tie[data-status='live'] { border-color: rgba(255,77,87,0.5); }
+.tie[data-status='pending'] { border-color: rgba(246,200,99,0.5); }
+.tie .mno .pend { color: var(--gold); font-weight: 800; }
 .tie .mno { font-size: 9.5px; font-weight: 700; color: var(--text-3); letter-spacing: 0.04em; margin-bottom: 5px; display: flex; justify-content: space-between; }
 .tie .side {
   display: flex; align-items: center; gap: 8px; padding: 3px 0; min-width: 0;

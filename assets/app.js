@@ -1,6 +1,6 @@
 // app.js — rendering + interaction. iPhone-first. All clock display goes
 // through the Asia/Riyadh timezone API (never a hardcoded +3 offset).
-import { resolve, hasScore, groupContext } from './engine.js';
+import { resolve, hasScore, groupContext, resultLabel } from './engine.js';
 
 const TZ = 'Asia/Riyadh';
 const $ = (s, r = document) => r.querySelector(s);
@@ -270,8 +270,10 @@ function matchRow(m, isNext) {
   const rail = el('div', 'rail');
   if (r.status === 'live') {
     rail.appendChild(el('span', 'pill live', '<span class="dot"></span>LIVE'));
+  } else if (r.status === 'pending') {
+    rail.appendChild(el('span', 'pill pending', 'RESULT PENDING'));
   } else if (r.status === 'finished') {
-    rail.appendChild(el('span', 'pill ft', m.stage === 'group' ? 'FT' : ftLabel(m)));
+    rail.appendChild(el('span', 'pill ft', m.stage === 'group' ? 'FT' : resultLabel(m)));
   } else if (isNext) {
     rail.appendChild(el('span', 'pill grp', 'NEXT'));
   }
@@ -279,12 +281,6 @@ function matchRow(m, isNext) {
   row.appendChild(rail);
 
   return row;
-}
-
-function ftLabel(m) {
-  // note penalties on a knockout that was level after normal/extra time
-  if (hasScore(m) && m.home_score === m.away_score && m.winner) return 'FT · PENS';
-  return 'FT';
 }
 
 function teamLine(side, m, which, winSide) {
@@ -426,7 +422,10 @@ function tieCard(m) {
   if (m.stage === 'final') card.classList.add('champ');
 
   const head = el('div', 'mno');
-  head.innerHTML = `<span>Match ${m.id}</span><span>${fmtChip.format(new Date(m.kickoff_utc))} · ${fmtTime.format(new Date(m.kickoff_utc))}</span>`;
+  const right = r.status === 'pending'
+    ? '<b class="pend">Result pending</b>'
+    : `${fmtChip.format(new Date(m.kickoff_utc))} · ${fmtTime.format(new Date(m.kickoff_utc))}`;
+  head.innerHTML = `<span>Match ${m.id}</span><span>${right}</span>`;
   card.appendChild(head);
 
   const winSide = winnerSide(m);

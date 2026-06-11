@@ -17,14 +17,32 @@ export function hasScore(m) {
   return Number.isFinite(m.home_score) && Number.isFinite(m.away_score);
 }
 
+const isKnockout = (m) => m.stage && m.stage !== 'group';
+const isLevel = (m) => hasScore(m) && m.home_score === m.away_score;
+const hasWinner = (m) => m.winner === 'home' || m.winner === 'away';
+
 export function displayStatus(m, now = Date.now()) {
   // an explicit live flag wins even when a running score is present
   if (m.status === 'live') return 'live';
+  // a knockout that finished level but has no decided winner is NOT "finished":
+  // it would silently stall the bracket. Surface it as "pending" instead.
+  if (m.result_pending || (isKnockout(m) && isLevel(m) && !hasWinner(m) && (m.status === 'finished' || hasScore(m)))) {
+    return 'pending';
+  }
   if (m.status === 'finished' || hasScore(m)) return 'finished';
   const ko = Date.parse(m.kickoff_utc);
   if (Number.isNaN(ko)) return 'upcoming';
   if (now >= ko && now < ko + LIVE_WINDOW_MS) return 'live';
   return 'upcoming';
+}
+
+// Short result label for a played match: 'FT', 'AET' (decided in extra time),
+// or 'FT · PENS' (decided on penalties). Pure so the UI and tests share it.
+export function resultLabel(m) {
+  if (!hasScore(m)) return '';
+  if (m.duration === 'PENALTY_SHOOTOUT' || (isLevel(m) && hasWinner(m))) return 'FT · PENS';
+  if (m.duration === 'EXTRA_TIME') return 'AET';
+  return 'FT';
 }
 
 // Winner / loser of a played knockout match, accounting for a penalty

@@ -40,3 +40,36 @@ live", not real-time — which is the honest ceiling for a free, keyless, static
   match is live or within ~30 min of kickoff / ~2.5h after, so committed score changes appear
   without a manual reload. The service worker serves this file **network-first** so the cache
   never freezes results.
+
+## Knockout result correctness — extra time & penalties (2026-06-11)
+
+A knockout that ends level is decided in extra time or on penalties. The bracket must advance
+the actual winner, not stall on a level score.
+
+### How each source carries this
+- **football-data.org v4** (`/competitions/WC/matches`): the `score` object carries
+  `winner` (`HOME_TEAM`/`AWAY_TEAM`/`DRAW`), `duration` (`REGULAR`/`EXTRA_TIME`/
+  `PENALTY_SHOOTOUT`), and `penalties: {home, away}`. `fullTime` is the score after regular +
+  extra time (so a shootout match reads e.g. `1-1` with `winner: AWAY_TEAM`). This is the only
+  source that can drive the knockout stage: it tags each match with a `stage`
+  (`ROUND_OF_16`, …) and gives a decided winner. **The updater uses it as primary when
+  `FOOTBALL_DATA_TOKEN` is set.**
+- **TheSportsDB `eventsseason`** (no key): does **not** expose a winner, penalties, or a usable
+  knockout-stage label (probed: `strStage`/`strRound` came back undefined). It can overlay
+  group results by team pair but **cannot resolve knockout ties**. It is the fixtures/back-up
+  source only.
+
+### Coverage proof status
+`football-data.org` free-tier WC-2026 access is verified by running the cron with the token
+and confirming `Source: football-data.org` plus returned WC-2026 matches (see the Action log /
+the committed `data/tournament.json` `meta.source`). Today is the opening day, so **no
+knockout has been played yet** — a live penalty `score` object cannot be sampled until the
+Round of 32 (28 Jun). The v4 `score` schema above is the documented contract; correctness when
+those results arrive is guaranteed by `scripts/test-knockout.mjs` and the safety net below.
+
+### Safety net (source-agnostic)
+If any source reports a knockout as finished and level but provides **no winner**, the updater
+writes `result_pending: true` (it does not invent a winner), and the engine renders the tie as
+**"result pending"** rather than a settled result. The downstream slot stays a placeholder, so
+a missing shootout result is visible instead of silently dead-ending the bracket. Extra-time
+and penalty results render as `AET` / `FT · PENS`.

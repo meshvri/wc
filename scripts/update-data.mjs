@@ -62,17 +62,30 @@ const STAGE_FROM_API = {
   FINAL: 'final',
 };
 
-function applyResult(target, hs, as, statusRaw, winnerRaw, pens) {
+function applyResult(target, hs, as, statusRaw, winnerRaw, pens, duration) {
   if (!Number.isFinite(hs) || !Number.isFinite(as)) {
     if (statusRaw === 'live') target.status = 'live';
     return false;
   }
   target.home_score = hs;
   target.away_score = as;
-  target.status = statusRaw === 'live' ? 'live' : 'finished';
-  if (hs === as && winnerRaw) target.winner = winnerRaw; // penalties decided it
+  const level = hs === as;
+  const isKO = target.stage && target.stage !== 'group';
+  const haveWinner = winnerRaw === 'home' || winnerRaw === 'away';
+  if (level && haveWinner) target.winner = winnerRaw; // extra time / penalties decided it
   if (pens && Number.isFinite(pens.home) && Number.isFinite(pens.away)) {
     target.home_pens = pens.home; target.away_pens = pens.away;
+  }
+  if (duration) target.duration = duration;
+  // A knockout that finished level but whose winner the source did not provide
+  // must NOT be written as a settled result — that silently stalls the bracket.
+  // Flag it pending so the gap is visible (the engine renders "result pending").
+  if (isKO && level && !haveWinner && statusRaw !== 'live') {
+    target.result_pending = true;
+    target.status = 'finished';
+  } else {
+    delete target.result_pending;
+    target.status = statusRaw === 'live' ? 'live' : 'finished';
   }
   return true;
 }
@@ -107,6 +120,7 @@ async function fromFootballData(token) {
       status: st,
       winner: m.score?.winner === 'HOME_TEAM' ? 'home' : m.score?.winner === 'AWAY_TEAM' ? 'away' : null,
       pens: m.score?.penalties ? { home: m.score.penalties.home, away: m.score.penalties.away } : null,
+      duration: m.score?.duration || null, // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
       stage: STAGE_FROM_API[m.stage] || (m.stage === 'GROUP_STAGE' ? 'group' : null),
       utcDate: m.utcDate,
     });
@@ -127,7 +141,11 @@ async function fromSportsDB(key) {
       hs: e.intHomeScore == null ? NaN : +e.intHomeScore,
       as: e.intAwayScore == null ? NaN : +e.intAwayScore,
       status: finished ? 'finished' : live ? 'live' : 'scheduled',
+      // eventsseason exposes no winner/penalty fields, so a level knockout here
+      // cannot be resolved and will be flagged result_pending downstream.
       winner: null, pens: null,
+      duration: /pen/i.test(e.strStatus || '') ? 'PENALTY_SHOOTOUT'
+        : /aet|after extra/i.test(e.strStatus || '') ? 'EXTRA_TIME' : null,
       stage: /group/i.test(e.strStage || e.strRound || '') ? 'group' : null,
       utcDate: e.strTimestamp ? `${e.strTimestamp}Z`.replace(/(\+00:00)?Z$/, 'Z') : (e.dateEvent ? `${e.dateEvent}T${e.strTime || '00:00:00'}Z` : null),
     });
@@ -166,7 +184,7 @@ async function main() {
       target = findKnockout(e.stage, e.utcDate);
     }
     if (!target) continue;
-    if (applyResult(target, e.hs, e.as, e.status, e.winner, e.pens)) applied++;
+    if (applyResult(target, e.hs, e.as, e.status, e.winner, e.pens, e.duration)) applied++;
     else if (e.status === 'live') applied++;
   }
 
