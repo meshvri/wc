@@ -1,0 +1,47 @@
+name: Update World Cup data
+
+on:
+  schedule:
+    # Every 2 hours, plus tighter cadence during the late-night Riyadh match
+    # windows (US evening = early morning UTC). Cron is UTC.
+    - cron: '0 */2 * * *'
+    - cron: '0,30 18-23 * * *'   # 18:00-23:59 UTC half-hourly (prime match hours)
+    - cron: '0,30 0-5 * * *'     # 00:00-05:59 UTC half-hourly (late US games)
+  workflow_dispatch: {}          # manual trigger
+
+# allow the workflow to push the refreshed data file back to the repo
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch + overlay live results
+        env:
+          # Optional. If set as a repo secret, football-data.org is used as the
+          # primary source; otherwise the script falls back to TheSportsDB (no key).
+          FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
+        run: node scripts/update-data.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data/tournament.json; then
+            echo "No data changes."
+          else
+            git add data/tournament.json
+            git commit -m "chore: sync World Cup results [skip ci]"
+            git push
+          fi

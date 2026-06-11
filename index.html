@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>World Cup 2026 · Riyadh time</title>
+  <meta name="description" content="Every 2026 FIFA World Cup match in Riyadh time, with flags, live scores and an auto-filling knockout bracket.">
+  <meta name="theme-color" content="#07090e">
+
+  <!-- OG -->
+  <meta property="og:title" content="World Cup 2026 · Riyadh time">
+  <meta property="og:description" content="All 104 matches in Riyadh time, with flags, live scores and an auto-filling bracket.">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://flagcdn.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="bar-inner">
+      <div class="brand">
+        <h1>World Cup <span class="yr">2026</span></h1>
+        <span class="hosts" id="hosts"></span>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button class="tab" role="tab" data-view="matches" aria-selected="true">Matches</button>
+        <button class="tab" role="tab" data-view="groups" aria-selected="false">Groups</button>
+        <button class="tab" role="tab" data-view="bracket" aria-selected="false">Bracket</button>
+      </div>
+      <div class="daystrip" id="daystrip" aria-label="Jump to day"></div>
+    </div>
+  </header>
+
+  <main id="views">
+    <div class="view" id="view-matches" role="tabpanel"></div>
+    <div class="view" id="view-groups" role="tabpanel" hidden></div>
+    <div class="view" id="view-bracket" role="tabpanel" hidden></div>
+    <p class="updated" id="updated"></p>
+  </main>
+
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>
