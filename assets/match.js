@@ -195,9 +195,11 @@ function renderGoals(H, A) {
   };
   const h = rows('home', H.fd), a = rows('away', A.fd);
   if (!h.length && !a.length) return null;
+  const ball = '<span class="g-ball">⚽</span>';
   const sec = el('section', 'md-goals');
-  sec.innerHTML = `<div class="g-col h"><span class="g-ball">⚽</span><ul>${h.join('')}</ul></div>`
-    + `<div class="g-col a"><ul>${a.join('')}</ul><span class="g-ball">⚽</span></div>`;
+  // only show the ball for a side that actually scored
+  sec.innerHTML = `<div class="g-col h">${h.length ? ball : ''}<ul>${h.join('')}</ul></div>`
+    + `<div class="g-col a"><ul>${a.join('')}</ul>${a.length ? ball : ''}</div>`;
   return sec;
 }
 const prettyName = (n) => n.replace(/\b([A-ZÀ-Ý]{2,})\b/g, (w) => w.charAt(0) + w.slice(1).toLowerCase());
