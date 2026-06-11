@@ -11,7 +11,7 @@
 // would freeze live results, so it is always fetched fresh with a cached
 // last-known fallback for offline.
 
-const SHELL = 'wc-shell-v2';
+const SHELL = 'wc-shell-v3';
 const DATA = 'wc-data-v1';
 const RUNTIME = 'wc-runtime-v1';
 
