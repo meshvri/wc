@@ -6,7 +6,7 @@
 //
 // Run: node scripts/test-knockout.mjs   (exit 0 = all pass)
 import { readFileSync } from 'node:fs';
-import { resolve, displayStatus, resultLabel } from '../assets/engine.js';
+import { resolve, displayStatus, resultLabel, buildLiveOverlay } from '../assets/engine.js';
 import { fifaMatchToEvent } from './update-data.mjs';
 
 let failures = 0;
@@ -96,6 +96,33 @@ console.log('Case E — FIFA match mapping (scores, penalties, derived winner, l
   // finished in regulation 2-1 -> winner home, no pens
   const ft = fifaMatchToEvent({ MatchNumber: 90, HomeTeamScore: 2, AwayTeamScore: 1, MatchStatus: 0 });
   ok(ft.winner === 'home' && ft.pens === null && ft.duration === null, 'decisive result -> winner home, no pens');
+}
+
+console.log('Case F — live overlay (the laggy-score fix):');
+{
+  const ids = new Set([1, 2, 3, 4]);
+  const row = (num, status, h, a, t) => ({ MatchNumber: num, MatchStatus: status, HomeTeamScore: h, AwayTeamScore: a, MatchTime: t });
+  // committed is STALE: match 1 still "live 1-0" while FIFA says "finished 2-0"
+  const committed = new Map([
+    [1, { status: 'live', home_score: 1, away_score: 0 }],
+    [2, { status: 'finished', home_score: 3, away_score: 1 }],
+    [3, { status: 'upcoming', home_score: null, away_score: null }],
+  ]);
+  const ov = buildLiveOverlay([
+    row(1, 0, 2, 0, null),    // finished per FIFA, committed stale -> bridge to 2-0 FT
+    row(2, 0, 3, 1, null),    // finished, committed already caught up -> omit
+    row(3, 3, 1, 0, "34'"),   // live -> live overlay with minute
+    row(4, 1, null, null, null), // upcoming -> omit
+    row(99, 3, 1, 1, "5'"),   // not in ids -> omit
+  ], committed, ids);
+
+  ok(ov.get(1) && ov.get(1).status === 'finished' && ov.get(1).home === 2 && ov.get(1).away === 0,
+    'just-finished + stale committed -> bridges to 2-0 finished (the fix)');
+  ok(!ov.has(2), 'finished + committed already final -> no overlay');
+  ok(ov.get(3) && ov.get(3).status === 'live' && ov.get(3).home === 1 && ov.get(3).min === "34'",
+    'live -> live overlay with score + minute');
+  ok(!ov.has(4), 'upcoming -> no overlay');
+  ok(!ov.has(99), 'unknown id -> ignored');
 }
 
 console.log(failures === 0 ? '\nALL PASS ✅' : `\n${failures} FAILURE(S) ❌`);

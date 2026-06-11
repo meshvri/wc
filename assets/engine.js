@@ -45,6 +45,36 @@ export function resultLabel(m) {
   return 'FT';
 }
 
+// Build the render-time live overlay from FIFA calendar rows. Pure, so it is
+// unit-tested directly. Returns id -> { home, away, min, status }.
+//   • live (MatchStatus 3)              -> live score + minute
+//   • finished, committed not caught up -> the FIFA final (bridges cron lag)
+//   • finished, committed already final -> omitted (committed is authoritative)
+//   • upcoming (null scores)            -> omitted
+// committedById: Map(id -> { status, home_score, away_score }); ids: Set of valid ids.
+export function buildLiveOverlay(rows, committedById, ids) {
+  const out = new Map();
+  for (const r of rows || []) {
+    const num = r.MatchNumber;
+    if (!ids.has(num)) continue;
+    const fhs = r.HomeTeamScore == null ? null : Number(r.HomeTeamScore);
+    const fas = r.AwayTeamScore == null ? null : Number(r.AwayTeamScore);
+    if (r.MatchStatus === 3) {
+      out.set(num, {
+        home: fhs == null ? 0 : fhs,
+        away: fas == null ? 0 : fas,
+        min: typeof r.MatchTime === 'string' ? r.MatchTime : '',
+        status: 'live',
+      });
+    } else if (Number.isFinite(fhs) && Number.isFinite(fas)) {
+      const cm = committedById.get(num);
+      const caught = cm && cm.status === 'finished' && cm.home_score === fhs && cm.away_score === fas;
+      if (!caught) out.set(num, { home: fhs, away: fas, min: '', status: 'finished' });
+    }
+  }
+  return out;
+}
+
 // Winner / loser of a played knockout match, accounting for a penalty
 // shootout via an optional `winner` field ("home" | "away") the updater can set.
 function outcome(m) {

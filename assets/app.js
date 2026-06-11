@@ -1,6 +1,6 @@
 // app.js — rendering + interaction. iPhone-first. All clock display goes
 // through the Asia/Riyadh timezone API (never a hardcoded +3 offset).
-import { resolve, hasScore, groupContext, resultLabel } from './engine.js';
+import { resolve, hasScore, groupContext, resultLabel, buildLiveOverlay } from './engine.js';
 
 const TZ = 'Asia/Riyadh';
 const $ = (s, r = document) => r.querySelector(s);
@@ -828,24 +828,7 @@ async function fifaTick() {
     const rows = json.Results || [];
     if (rows.length < 64) throw new Error('unexpected shape');
     const committed = new Map(DATA.matches.map((m) => [m.id, m]));
-    const next = new Map();
-    for (const r of rows) {
-      if (!MATCH_IDS.has(r.MatchNumber)) continue;
-      const fhs = r.HomeTeamScore == null ? null : Number(r.HomeTeamScore);
-      const fas = r.AwayTeamScore == null ? null : Number(r.AwayTeamScore);
-      if (r.MatchStatus === 3) {
-        next.set(r.MatchNumber, {
-          home: fhs == null ? 0 : fhs, away: fas == null ? 0 : fas,
-          min: typeof r.MatchTime === 'string' ? r.MatchTime : '', status: 'live',
-        });
-      } else if (Number.isFinite(fhs) && Number.isFinite(fas)) {
-        // FIFA reports it finished — bridge until the committed file catches up,
-        // so a just-ended match shows the real final instead of a stale live score
-        const cm = committed.get(r.MatchNumber);
-        const caught = cm && cm.status === 'finished' && cm.home_score === fhs && cm.away_score === fas;
-        if (!caught) next.set(r.MatchNumber, { home: fhs, away: fas, min: '', status: 'finished' });
-      }
-    }
+    const next = buildLiveOverlay(rows, committed, MATCH_IDS);
     fifaBackoff = 0;
     if (!overlayEqual(LIVE_OV, next)) {
       LIVE_OV = next;
