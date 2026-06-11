@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>🏆 توقعات كأس العالم 2026</title>
+<meta name="theme-color" content="#0d1f14">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+  :root {
+    --green:#1a6b3a; --green-light:#25a05a; --gold:#c9a227; --gold-light:#f0c040;
+    --dark:#0d1f14; --card:#132b1c; --card2:#1a3825; --line:#1e4028; --border:#2e5a3a;
+    --text:#e8f5ec; --muted:#7aad8e; --red:#e05555; --win:#25a05a; --draw:#c9a227; --lose:#e05555;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Cairo',sans-serif; background:var(--dark); color:var(--text); min-height:100vh; -webkit-text-size-adjust:100%; }
+  img { display:block; }
+
+  .header { background:linear-gradient(135deg,#0d1f14,#1a3825); border-bottom:2px solid var(--gold); padding:calc(env(safe-area-inset-top) + 16px) 20px 12px; text-align:center; position:sticky; top:0; z-index:100; }
+  .header h1 { font-size:1.4rem; font-weight:900; color:var(--gold-light); }
+  .header p { color:var(--muted); font-size:0.82rem; margin-top:2px; }
+  .header .out { position:absolute; left:14px; top:calc(env(safe-area-inset-top) + 18px); background:none; border:1px solid var(--border); color:var(--muted); border-radius:18px; padding:5px 12px; font-family:inherit; font-size:0.72rem; font-weight:700; cursor:pointer; }
+
+  .tabs { display:flex; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:62px; z-index:99; }
+  .tab { flex:1; padding:13px 6px; text-align:center; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--muted); border-bottom:3px solid transparent; transition:all 0.2s; font-family:inherit; background:none; }
+  .tab.active { color:var(--gold-light); border-bottom-color:var(--gold); background:var(--card2); }
+
+  .section { display:none; padding:16px; max-width:680px; margin:0 auto; }
+  .section.active { display:block; }
+
+  .card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:14px; border:1px solid var(--line); }
+
+  .pts-legend { display:flex; gap:8px; }
+  .pts-item { background:var(--card2); border-radius:10px; padding:9px 8px; font-size:0.76rem; text-align:center; flex:1; line-height:1.5; }
+  .pts-val { font-size:1.2rem; font-weight:900; color:var(--gold-light); display:block; }
+
+  .group-label { font-size:0.85rem; color:var(--gold); font-weight:700; margin:18px 4px 8px; letter-spacing:0.5px; }
+
+  .match-card { background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px; border:1px solid var(--line); }
+  .match-card.locked { opacity:0.96; }
+  .match-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:0.74rem; color:var(--muted); }
+  .match-when { font-weight:600; }
+  .st-chip { font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:20px; }
+  .st-chip.live { background:var(--red); color:#fff; }
+  .st-chip.ft { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
+  .st-chip.soon { background:#143; color:var(--gold-light); }
+  .st-chip.lock { background:var(--card2); color:var(--muted); }
+
+  .teams-row { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; margin-bottom:12px; }
+  .team { text-align:center; font-size:0.92rem; font-weight:700; min-width:0; }
+  .team .flag { width:42px; height:31px; border-radius:4px; object-fit:cover; margin:0 auto 5px; box-shadow:0 0 0 1px rgba(255,255,255,0.08); }
+  .team .flag.tbd { display:grid; place-items:center; background:var(--card2); color:var(--muted); font-size:1.1rem; }
+  .team .nm { display:block; line-height:1.25; }
+  .vs { color:var(--gold); font-weight:900; font-size:0.95rem; }
+  .mid-score { font-size:1.5rem; font-weight:900; color:var(--text); letter-spacing:1px; }
+  .mid-score b { color:var(--gold-light); }
+
+  .result-options { display:flex; gap:6px; margin-bottom:10px; }
+  .result-btn { flex:1; background:var(--dark); border:2px solid var(--border); border-radius:10px; padding:9px 4px; color:var(--muted); font-family:inherit; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.15s; }
+  .result-btn.sel-win { background:#0d3320; border-color:var(--win); color:var(--win); }
+  .result-btn.sel-draw { background:#2e2200; border-color:var(--draw); color:var(--draw); }
+  .result-btn.sel-lose { background:#2e0d0d; border-color:var(--lose); color:var(--lose); }
+
+  .score-row { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:12px; }
+  .score-num { width:52px; background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:9px 4px; color:var(--text); font-family:inherit; font-size:1.2rem; font-weight:800; text-align:center; outline:none; }
+  .score-num:focus { border-color:var(--gold); }
+  .score-num:disabled { opacity:0.7; }
+  .score-sep { color:var(--gold); font-size:1.4rem; font-weight:900; }
+  .score-label { font-size:0.72rem; color:var(--muted); max-width:62px; text-align:center; }
+
+  .save-btn { background:var(--green); color:#fff; border:none; border-radius:10px; padding:11px; font-family:inherit; font-size:0.9rem; font-weight:800; cursor:pointer; width:100%; }
+  .save-btn:hover { background:var(--green-light); }
+
+  .verdict { display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--card2); border-radius:10px; padding:10px 12px; font-size:0.82rem; font-weight:700; }
+  .verdict .mine { color:var(--muted); }
+  .verdict .pts { font-size:0.95rem; font-weight:900; padding:3px 10px; border-radius:20px; }
+  .verdict .pts.p3 { background:#0d3320; color:var(--win); }
+  .verdict .pts.p1 { background:#2e2200; color:var(--draw); }
+  .verdict .pts.p0 { background:#2e0d0d; color:var(--lose); }
+
+  .lb-card { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px; border:1px solid var(--line); display:flex; align-items:center; gap:14px; }
+  .lb-card.me { border-color:var(--green-light); }
+  .lb-rank { font-size:1.3rem; font-weight:900; color:var(--muted); min-width:34px; text-align:center; }
+  .lb-rank.r1{color:var(--gold-light);} .lb-rank.r2{color:#c0c0c0;} .lb-rank.r3{color:#cd7f32;}
+  .lb-name { flex:1; font-size:1rem; font-weight:800; }
+  .lb-name small { color:var(--muted); font-weight:600; font-size:0.72rem; }
+  .lb-pts { font-size:1.3rem; font-weight:900; color:var(--gold-light); }
+  .lb-pts span { font-size:0.72rem; color:var(--muted); font-weight:400; }
+
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--green); color:#fff; padding:12px 24px; border-radius:24px; font-weight:800; font-size:0.92rem; z-index:999; opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
+  .toast.show { opacity:1; }
+  .loading,.empty { text-align:center; padding:36px 20px; color:var(--muted); }
+  .empty .icon { font-size:2.6rem; margin-bottom:10px; }
+  .hint { color:var(--muted); font-size:0.78rem; text-align:center; margin-top:8px; line-height:1.6; }
+
+  #loginScreen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:88vh; padding:24px; }
+  #loginScreen .logo { font-size:4rem; margin-bottom:14px; }
+  #loginScreen h2 { font-size:1.3rem; font-weight:900; color:var(--gold-light); margin-bottom:8px; text-align:center; }
+  #loginScreen p { color:var(--muted); font-size:0.85rem; margin-bottom:22px; text-align:center; }
+  #loginScreen input { width:100%; max-width:300px; background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:13px 14px; color:var(--text); font-family:inherit; font-size:1rem; outline:none; margin-bottom:12px; text-align:center; }
+  #loginScreen input:focus { border-color:var(--green-light); }
+  #loginScreen .btn { width:100%; max-width:300px; background:var(--gold); color:var(--dark); border:none; border-radius:10px; padding:13px; font-family:inherit; font-size:1rem; font-weight:900; cursor:pointer; }
+  .backlink { display:block; text-align:center; color:var(--muted); font-size:0.78rem; margin-top:18px; text-decoration:none; }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="logo">🏆</div>
+  <h2>توقعات كأس العالم 2026</h2>
+  <p>اكتب اسمك للمشاركة مع الشباب — بدون كلمة سر</p>
+  <input type="text" id="nameInput" placeholder="اسمك..." maxlength="24" autocomplete="off">
+  <button class="btn" id="loginBtn">ادخل 🚀</button>
+  <a class="backlink" href="./">↩ العودة إلى جدول المباريات</a>
+</div>
+
+<div id="mainApp" style="display:none;">
+  <div class="header">
+    <button class="out" id="logoutBtn">خروج</button>
+    <h1>🏆 توقعات 2026</h1>
+    <p id="welcomeMsg"></p>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="predictions">⚽ توقعاتي</button>
+    <button class="tab" data-tab="leaderboard">🏅 الترتيب</button>
+    <button class="tab" data-tab="results">📋 النتائج</button>
+  </div>
+  <div id="tab-predictions" class="section active"></div>
+  <div id="tab-leaderboard" class="section"></div>
+  <div id="tab-results" class="section"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { resolve, displayStatus, hasScore } from './assets/engine.js';
+
+const SUPABASE_URL = 'https://ybupffzdlyotvahelxxd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlidXBmZnpkbHlvdHZhaGVseHhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDc1MDQsImV4cCI6MjA5NjY4MzUwNH0.Qs1ieH035J5kXvsxrQw7ToNXnGc1MMwD-zk3HX7BMY0';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Arabic team names by ISO code
+const AR = {
+  mx:'المكسيك', za:'جنوب أفريقيا', kr:'كوريا الجنوبية', cz:'التشيك',
+  ca:'كندا', ba:'البوسنة والهرسك', qa:'قطر', ch:'سويسرا',
+  br:'البرازيل', ma:'المغرب', ht:'هايتي', 'gb-sct':'اسكتلندا',
+  us:'الولايات المتحدة', py:'باراغواي', au:'أستراليا', tr:'تركيا',
+  de:'ألمانيا', cw:'كوراساو', ci:'ساحل العاج', ec:'الإكوادور',
+  nl:'هولندا', jp:'اليابان', se:'السويد', tn:'تونس',
+  be:'بلجيكا', eg:'مصر', ir:'إيران', nz:'نيوزيلندا',
+  es:'إسبانيا', cv:'الرأس الأخضر', sa:'السعودية', uy:'أوروغواي',
+  fr:'فرنسا', sn:'السنغال', iq:'العراق', no:'النرويج',
+  ar:'الأرجنتين', dz:'الجزائر', at:'النمسا', jo:'الأردن',
+  pt:'البرتغال', cd:'الكونغو الديمقراطية', uz:'أوزبكستان', co:'كولومبيا',
+  'gb-eng':'إنجلترا', hr:'كرواتيا', gh:'غانا', pa:'بنما',
+};
+const STAGE_AR = { group:'المجموعات', r32:'دور الـ32', r16:'دور الـ16', qf:'ربع النهائي', sf:'نصف النهائي', third:'مباراة المركز الثالث', final:'النهائي' };
+const STAGE_ORDER = { group:0, r32:1, r16:2, qf:3, sf:4, third:5, final:6 };
+
+const fmtDate = new Intl.DateTimeFormat('ar', { timeZone:'Asia/Riyadh', weekday:'long', day:'numeric', month:'long' });
+const fmtTime = new Intl.DateTimeFormat('ar', { timeZone:'Asia/Riyadh', hour:'numeric', minute:'2-digit', hour12:true });
+const flagURL = (c) => `https://flagcdn.com/${c}.svg`;
+const $ = (s, r = document) => r.querySelector(s);
+
+let DATA = null, RES = null, MATCHES = [], PLAYER = null, MYPRED = {};
+
+// ── scoring — the single source of truth ────────────────────────────────────
+// 3 = exact scoreline, 1 = correct outcome only, 0 = wrong. Only scoreable
+// (finished) matches count.
+function points(pred, real) {
+  if (!pred || !real) return null;
+  const ro = real.hs > real.as ? 'h' : real.hs < real.as ? 'a' : 'd';
+  const exact = Number.isFinite(pred.home_score) && Number.isFinite(pred.away_score)
+    && pred.home_score === real.hs && pred.away_score === real.as;
+  if (exact) return 3;
+  if (pred.result === ro) return 1;
+  return 0;
+}
+
+// ── data ────────────────────────────────────────────────────────────────────
+async function loadTournament() {
+  const res = await fetch('data/tournament.json', { cache: 'no-store' });
+  DATA = await res.json();
+  RES = resolve(DATA, Date.now());
+  const sideOf = (s) => (s.placeholder ? { placeholder: s.placeholder, code: null } : { code: s.code, name: AR[s.code] || s.name });
+  MATCHES = DATA.matches.slice()
+    .sort((a, b) => Date.parse(a.kickoff_utc) - Date.parse(b.kickoff_utc))
+    .map((m) => {
+      const r = RES.resolved.get(m.id);
+      const st = displayStatus(m, Date.now());
+      const scoreable = st !== 'live' && hasScore(m);
+      return {
+        id: m.id, stage: m.stage, group: m.group, kickoff: m.kickoff_utc,
+        home: sideOf(r.home), away: sideOf(r.away),
+        ready: !r.home.placeholder && !r.away.placeholder,
+        status: st,
+        locked: Date.now() >= Date.parse(m.kickoff_utc),
+        real: scoreable ? { hs: m.home_score, as: m.away_score } : null,
+      };
+    });
+}
+
+async function loadMyPred() {
+  const { data } = await sb.from('predictions').select('*').eq('player_id', PLAYER.id);
+  MYPRED = {};
+  (data || []).forEach((p) => { MYPRED[p.match_id] = p; });
+}
+
+// ── auth (name only) ────────────────────────────────────────────────────────
+async function login(name) {
+  name = (name || '').trim();
+  if (!name) return;
+  const { data, error } = await sb.from('players').upsert({ name }, { onConflict: 'name' }).select().single();
+  if (error) { toast('تعذّر الاتصال بقاعدة البيانات', 'err'); return; }
+  PLAYER = data;
+  localStorage.setItem('wcp_name', name);
+  await loadMyPred();
+  $('#loginScreen').style.display = 'none';
+  $('#mainApp').style.display = 'block';
+  $('#welcomeMsg').textContent = `أهلاً ${name} 👋`;
+  renderPredictions();
+}
+function logout() { localStorage.removeItem('wcp_name'); location.reload(); }
+
+// ── render: predictions ─────────────────────────────────────────────────────
+function sectionKey(m) { return m.stage === 'group' ? `المجموعة ${m.group}` : STAGE_AR[m.stage]; }
+
+function renderPredictions() {
+  const host = $('#tab-predictions');
+  let html = `<div class="card"><div class="pts-legend">
+      <div class="pts-item"><span class="pts-val">3</span>نتيجة مطابقة</div>
+      <div class="pts-item"><span class="pts-val">1</span>الفائز صحيح</div>
+      <div class="pts-item"><span class="pts-val">0</span>خطأ</div>
+    </div><p class="hint">التوقع يُقفل عند بداية المباراة. النتائج تتحدّث تلقائياً.</p></div>`;
+
+  let lastKey = null;
+  for (const m of MATCHES) {
+    const key = sectionKey(m);
+    if (key !== lastKey) { html += `<div class="group-label">⚽ ${key}</div>`; lastKey = key; }
+    html += matchCard(m);
+  }
+  host.innerHTML = html;
+}
+
+function teamCell(side) {
+  const flag = side.code
+    ? `<img class="flag" src="${flagURL(side.code)}" alt="" width="42" height="31">`
+    : `<span class="flag tbd">؟</span>`;
+  const name = side.code ? side.name : 'يُحدَّد لاحقاً';
+  return `<div class="team">${flag}<span class="nm">${name}</span></div>`;
+}
+
+function statusChip(m) {
+  if (m.status === 'live') return '<span class="st-chip live">● مباشر</span>';
+  if (m.real) return '<span class="st-chip ft">انتهت</span>';
+  if (m.locked) return '<span class="st-chip lock">🔒 مقفل</span>';
+  return '<span class="st-chip soon">يُتوقَّع</span>';
+}
+
+function matchCard(m) {
+  const pr = MYPRED[m.id];
+  const when = `${fmtDate.format(new Date(m.kickoff))} · ${fmtTime.format(new Date(m.kickoff))}`;
+  let mid = `<div class="vs">VS</div>`;
+  if (m.real) mid = `<div class="mid-score"><b>${m.real.hs}</b> - <b>${m.real.as}</b></div>`;
+
+  let body = '';
+  if (!m.ready) {
+    body = `<p class="hint">يفتح التوقّع عند تحديد الفريقين</p>`;
+  } else if (m.locked) {
+    // read-only + verdict
+    if (pr) {
+      const pv = m.real ? points(pr, m.real) : null;
+      const myLine = `توقّعك: ${pickLabel(m, pr)}${Number.isFinite(pr.home_score) ? ` (${pr.home_score}-${pr.away_score})` : ''}`;
+      const badge = pv === null ? '<span class="pts" style="background:var(--card);color:var(--muted)">بانتظار النتيجة</span>'
+        : `<span class="pts p${pv}">${pv === 0 ? '٠' : '+' + pv}</span>`;
+      body = `<div class="verdict"><span class="mine">${myLine}</span>${badge}</div>`;
+    } else {
+      body = `<p class="hint">لم تتوقّع هذه المباراة</p>`;
+    }
+  } else {
+    const sel = pr ? pr.result : null;
+    const hs = pr && Number.isFinite(pr.home_score) ? pr.home_score : '';
+    const as = pr && Number.isFinite(pr.away_score) ? pr.away_score : '';
+    body = `
+      <div class="result-options">
+        <button class="result-btn ${sel === 'h' ? 'sel-win' : ''}" data-act="pick" data-m="${m.id}" data-r="h">فوز ${m.home.name}</button>
+        <button class="result-btn ${sel === 'd' ? 'sel-draw' : ''}" data-act="pick" data-m="${m.id}" data-r="d">تعادل</button>
+        <button class="result-btn ${sel === 'a' ? 'sel-lose' : ''}" data-act="pick" data-m="${m.id}" data-r="a">فوز ${m.away.name}</button>
+      </div>
+      <div class="score-row">
+        <span class="score-label">${m.home.name}</span>
+        <input class="score-num" type="number" inputmode="numeric" min="0" max="20" value="${hs}" placeholder="0" id="hs_${m.id}">
+        <span class="score-sep">:</span>
+        <input class="score-num" type="number" inputmode="numeric" min="0" max="20" value="${as}" placeholder="0" id="as_${m.id}">
+        <span class="score-label">${m.away.name}</span>
+      </div>
+      <button class="save-btn" data-act="save" data-m="${m.id}">💾 حفظ التوقع</button>`;
+  }
+
+  return `<div class="match-card ${m.locked ? 'locked' : ''}">
+      <div class="match-head"><span class="match-when">${when}</span>${statusChip(m)}</div>
+      <div class="teams-row">${teamCell(m.home)}${mid}${teamCell(m.away)}</div>
+      ${body}
+    </div>`;
+}
+function pickLabel(m, pr) {
+  if (pr.result === 'h') return `فوز ${m.home.name}`;
+  if (pr.result === 'a') return `فوز ${m.away.name}`;
+  return 'تعادل';
+}
+
+// pick a result button (in-memory until save)
+function pick(matchId, r, btn) {
+  const card = btn.closest('.match-card');
+  card.querySelectorAll('.result-btn').forEach((b) => { b.className = 'result-btn'; });
+  btn.className = `result-btn ${r === 'h' ? 'sel-win' : r === 'd' ? 'sel-draw' : 'sel-lose'}`;
+  MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: r };
+}
+
+async function savePred(matchId) {
+  const m = MATCHES.find((x) => x.id === matchId);
+  if (!m || m.locked) { toast('انتهى وقت التوقّع لهذه المباراة', 'err'); refreshAndRerender(); return; }
+  const hsv = parseInt($('#hs_' + matchId).value, 10);
+  const asv = parseInt($('#as_' + matchId).value, 10);
+  let result = (MYPRED[matchId] || {}).result;
+  if (Number.isFinite(hsv) && Number.isFinite(asv)) result = hsv > asv ? 'h' : hsv < asv ? 'a' : 'd';
+  if (!result) { toast('اختر النتيجة أو أدخل الأهداف', 'err'); return; }
+  const row = {
+    player_id: PLAYER.id, match_id: matchId, result,
+    home_score: Number.isFinite(hsv) ? hsv : null,
+    away_score: Number.isFinite(asv) ? asv : null,
+  };
+  const { error } = await sb.from('predictions').upsert(row, { onConflict: 'player_id,match_id' });
+  if (error) { toast('خطأ في الحفظ', 'err'); return; }
+  MYPRED[matchId] = row;
+  toast('✅ تم حفظ التوقع');
+}
+
+// ── render: leaderboard (auto-scored from live results) ──────────────────────
+async function renderLeaderboard() {
+  const host = $('#tab-leaderboard');
+  host.innerHTML = '<div class="loading">⏳ جاري الحساب...</div>';
+  await loadTournament(); // refresh real results
+  const [{ data: players }, { data: preds }] = await Promise.all([
+    sb.from('players').select('*'),
+    sb.from('predictions').select('*'),
+  ]);
+  const realById = new Map(MATCHES.filter((m) => m.real).map((m) => [m.id, m.real]));
+  const tally = {};
+  (players || []).forEach((p) => { tally[p.id] = { name: p.name, pts: 0, exact: 0, hit: 0 }; });
+  (preds || []).forEach((pr) => {
+    const real = realById.get(pr.match_id);
+    const t = tally[pr.player_id];
+    if (!real || !t) return;
+    const pv = points(pr, real);
+    t.pts += pv;
+    if (pv === 3) t.exact++;
+    if (pv > 0) t.hit++;
+  });
+
+  const played = realById.size;
+  const sorted = Object.values(tally).sort((a, b) => b.pts - a.pts || b.exact - a.exact || a.name.localeCompare(b.name, 'ar'));
+
+  let html = `<div class="card" style="text-align:center;">
+      <div style="font-size:0.82rem;color:var(--muted);">المباريات المنتهية</div>
+      <div style="font-size:2rem;font-weight:900;color:var(--gold-light);">${played} / ${MATCHES.length}</div>
+    </div>`;
+  if (!sorted.length) html += '<div class="empty"><div class="icon">👥</div><p>لا يوجد لاعبون بعد</p></div>';
+  sorted.forEach((p, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    const rc = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    const me = p.name === PLAYER.name ? ' me' : '';
+    html += `<div class="lb-card${me}">
+        <div class="lb-rank ${rc}">${medal}</div>
+        <div class="lb-name">${p.name}${me ? ' 👈' : ''}<br><small>${p.exact} نتيجة مطابقة · ${p.hit} توقّع صحيح</small></div>
+        <div class="lb-pts">${p.pts} <span>نقطة</span></div>
+      </div>`;
+  });
+  host.innerHTML = html;
+}
+
+// ── render: results (read-only, real) ───────────────────────────────────────
+async function renderResults() {
+  const host = $('#tab-results');
+  host.innerHTML = '<div class="loading">⏳ جاري التحميل...</div>';
+  await loadTournament();
+  let html = '<p class="hint" style="margin-bottom:14px;">النتائج تُجلب تلقائياً من المصدر الرسمي.</p>';
+  let lastKey = null;
+  for (const m of MATCHES) {
+    const key = sectionKey(m);
+    if (key !== lastKey) { html += `<div class="group-label">⚽ ${key}</div>`; lastKey = key; }
+    const when = `${fmtDate.format(new Date(m.kickoff))} · ${fmtTime.format(new Date(m.kickoff))}`;
+    const mid = m.real ? `<div class="mid-score"><b>${m.real.hs}</b> - <b>${m.real.as}</b></div>`
+      : m.status === 'live' ? '<div class="vs" style="color:var(--red)">● مباشر</div>' : '<div class="vs">VS</div>';
+    html += `<div class="match-card"><div class="match-head"><span class="match-when">${when}</span>${statusChip(m)}</div>
+        <div class="teams-row">${teamCell(m.home)}${mid}${teamCell(m.away)}</div></div>`;
+  }
+  host.innerHTML = html;
+}
+
+async function refreshAndRerender() { await loadTournament(); await loadMyPred(); renderPredictions(); }
+
+// ── events ──────────────────────────────────────────────────────────────────
+function toast(msg, kind) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.style.background = kind === 'err' ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.section').forEach((s) => s.classList.remove('active'));
+  $('#tab-' + name).classList.add('active');
+  if (name === 'predictions') refreshAndRerender();
+  if (name === 'leaderboard') renderLeaderboard();
+  if (name === 'results') renderResults();
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-act], [data-tab], #loginBtn, #logoutBtn');
+  if (!t) return;
+  if (t.id === 'loginBtn') return login($('#nameInput').value);
+  if (t.id === 'logoutBtn') return logout();
+  if (t.dataset.tab) return switchTab(t.dataset.tab);
+  if (t.dataset.act === 'pick') return pick(+t.dataset.m, t.dataset.r, t);
+  if (t.dataset.act === 'save') return savePred(+t.dataset.m);
+});
+$('#nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') login($('#nameInput').value); });
+
+// ── boot ────────────────────────────────────────────────────────────────────
+(async function boot() {
+  try { await loadTournament(); }
+  catch (e) { toast('تعذّر تحميل الجدول', 'err'); }
+  const saved = localStorage.getItem('wcp_name');
+  if (saved) login(saved); // stay logged in across the tournament
+})();
+</script>
+</body>
+</html>
