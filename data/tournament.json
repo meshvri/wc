@@ -7,7 +7,7 @@
     "display_tz": "Asia/Riyadh",
     "display_tz_label": "Riyadh",
     "total_matches": 104,
-    "updated_utc": "2026-06-11T19:35:30.047Z",
+    "updated_utc": "2026-06-11T19:52:59.383Z",
     "source": "api.fifa.com"
   },
   "groups": {
@@ -330,7 +330,9 @@
       "away_feed": null,
       "home_score": 1,
       "away_score": 0,
-      "status": "live"
+      "status": "live",
+      "fifa_id": "400021443",
+      "fifa_stage": "289273"
     },
     {
       "id": 2,
@@ -351,7 +353,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021441",
+      "fifa_stage": "289273"
     },
     {
       "id": 3,
@@ -372,7 +376,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021449",
+      "fifa_stage": "289273"
     },
     {
       "id": 4,
@@ -393,7 +399,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021458",
+      "fifa_stage": "289273"
     },
     {
       "id": 5,
@@ -414,7 +422,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021453",
+      "fifa_stage": "289273"
     },
     {
       "id": 6,
@@ -435,7 +445,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021463",
+      "fifa_stage": "289273"
     },
     {
       "id": 7,
@@ -456,7 +468,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021456",
+      "fifa_stage": "289273"
     },
     {
       "id": 8,
@@ -477,7 +491,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021447",
+      "fifa_stage": "289273"
     },
     {
       "id": 9,
@@ -498,7 +514,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021467",
+      "fifa_stage": "289273"
     },
     {
       "id": 10,
@@ -519,7 +537,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021464",
+      "fifa_stage": "289273"
     },
     {
       "id": 11,
@@ -540,7 +560,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021470",
+      "fifa_stage": "289273"
     },
     {
       "id": 12,
@@ -561,7 +583,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021474",
+      "fifa_stage": "289273"
     },
     {
       "id": 13,
@@ -582,7 +606,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021486",
+      "fifa_stage": "289273"
     },
     {
       "id": 14,
@@ -603,7 +629,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021482",
+      "fifa_stage": "289273"
     },
     {
       "id": 15,
@@ -624,7 +652,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021476",
+      "fifa_stage": "289273"
     },
     {
       "id": 16,
@@ -645,7 +675,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021478",
+      "fifa_stage": "289273"
     },
     {
       "id": 17,
@@ -666,7 +698,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021490",
+      "fifa_stage": "289273"
     },
     {
       "id": 18,
@@ -687,7 +721,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021488",
+      "fifa_stage": "289273"
     },
     {
       "id": 19,
@@ -708,7 +744,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021496",
+      "fifa_stage": "289273"
     },
     {
       "id": 20,
@@ -729,7 +767,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021498",
+      "fifa_stage": "289273"
     },
     {
       "id": 21,
@@ -750,7 +790,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021510",
+      "fifa_stage": "289273"
     },
     {
       "id": 22,
@@ -771,7 +813,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021507",
+      "fifa_stage": "289273"
     },
     {
       "id": 23,
@@ -792,7 +836,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021502",
+      "fifa_stage": "289273"
     },
     {
       "id": 24,
@@ -813,7 +859,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021504",
+      "fifa_stage": "289273"
     },
     {
       "id": 25,
@@ -834,7 +882,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021440",
+      "fifa_stage": "289273"
     },
     {
       "id": 26,
@@ -855,7 +905,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021446",
+      "fifa_stage": "289273"
     },
     {
       "id": 27,
@@ -876,7 +928,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021450",
+      "fifa_stage": "289273"
     },
     {
       "id": 28,
@@ -897,7 +951,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021442",
+      "fifa_stage": "289273"
     },
     {
       "id": 29,
@@ -918,7 +974,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021457",
+      "fifa_stage": "289273"
     },
     {
       "id": 30,
@@ -939,7 +997,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021454",
+      "fifa_stage": "289273"
     },
     {
       "id": 31,
@@ -960,7 +1020,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021460",
+      "fifa_stage": "289273"
     },
     {
       "id": 32,
@@ -981,7 +1043,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021462",
+      "fifa_stage": "289273"
     },
     {
       "id": 33,
@@ -1002,7 +1066,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021469",
+      "fifa_stage": "289273"
     },
     {
       "id": 34,
@@ -1023,7 +1089,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021465",
+      "fifa_stage": "289273"
     },
     {
       "id": 35,
@@ -1044,7 +1112,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021472",
+      "fifa_stage": "289273"
     },
     {
       "id": 36,
@@ -1065,7 +1135,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021475",
+      "fifa_stage": "289273"
     },
     {
       "id": 37,
@@ -1086,7 +1158,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021487",
+      "fifa_stage": "289273"
     },
     {
       "id": 38,
@@ -1107,7 +1181,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021483",
+      "fifa_stage": "289273"
     },
     {
       "id": 39,
@@ -1128,7 +1204,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021477",
+      "fifa_stage": "289273"
     },
     {
       "id": 40,
@@ -1149,7 +1227,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021480",
+      "fifa_stage": "289273"
     },
     {
       "id": 41,
@@ -1170,7 +1250,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021491",
+      "fifa_stage": "289273"
     },
     {
       "id": 42,
@@ -1191,7 +1273,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021492",
+      "fifa_stage": "289273"
     },
     {
       "id": 43,
@@ -1212,7 +1296,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021494",
+      "fifa_stage": "289273"
     },
     {
       "id": 44,
@@ -1233,7 +1319,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021499",
+      "fifa_stage": "289273"
     },
     {
       "id": 45,
@@ -1254,7 +1342,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021506",
+      "fifa_stage": "289273"
     },
     {
       "id": 46,
@@ -1275,7 +1365,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021511",
+      "fifa_stage": "289273"
     },
     {
       "id": 47,
@@ -1296,7 +1388,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021503",
+      "fifa_stage": "289273"
     },
     {
       "id": 48,
@@ -1317,7 +1411,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021501",
+      "fifa_stage": "289273"
     },
     {
       "id": 49,
@@ -1338,7 +1434,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021455",
+      "fifa_stage": "289273"
     },
     {
       "id": 50,
@@ -1359,7 +1457,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021452",
+      "fifa_stage": "289273"
     },
     {
       "id": 51,
@@ -1380,7 +1480,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021451",
+      "fifa_stage": "289273"
     },
     {
       "id": 52,
@@ -1401,7 +1503,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021448",
+      "fifa_stage": "289273"
     },
     {
       "id": 53,
@@ -1422,7 +1526,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021444",
+      "fifa_stage": "289273"
     },
     {
       "id": 54,
@@ -1443,7 +1549,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021445",
+      "fifa_stage": "289273"
     },
     {
       "id": 55,
@@ -1464,7 +1572,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021468",
+      "fifa_stage": "289273"
     },
     {
       "id": 56,
@@ -1485,7 +1595,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021466",
+      "fifa_stage": "289273"
     },
     {
       "id": 57,
@@ -1506,7 +1618,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021471",
+      "fifa_stage": "289273"
     },
     {
       "id": 58,
@@ -1527,7 +1641,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021473",
+      "fifa_stage": "289273"
     },
     {
       "id": 59,
@@ -1548,7 +1664,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021459",
+      "fifa_stage": "289273"
     },
     {
       "id": 60,
@@ -1569,7 +1687,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021461",
+      "fifa_stage": "289273"
     },
     {
       "id": 61,
@@ -1590,7 +1710,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021489",
+      "fifa_stage": "289273"
     },
     {
       "id": 62,
@@ -1611,7 +1733,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021493",
+      "fifa_stage": "289273"
     },
     {
       "id": 63,
@@ -1632,7 +1756,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021479",
+      "fifa_stage": "289273"
     },
     {
       "id": 64,
@@ -1653,7 +1779,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021481",
+      "fifa_stage": "289273"
     },
     {
       "id": 65,
@@ -1674,7 +1802,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021485",
+      "fifa_stage": "289273"
     },
     {
       "id": 66,
@@ -1695,7 +1825,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021484",
+      "fifa_stage": "289273"
     },
     {
       "id": 67,
@@ -1716,7 +1848,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021508",
+      "fifa_stage": "289273"
     },
     {
       "id": 68,
@@ -1737,7 +1871,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021509",
+      "fifa_stage": "289273"
     },
     {
       "id": 69,
@@ -1758,7 +1894,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021497",
+      "fifa_stage": "289273"
     },
     {
       "id": 70,
@@ -1779,7 +1917,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021495",
+      "fifa_stage": "289273"
     },
     {
       "id": 71,
@@ -1800,7 +1940,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021505",
+      "fifa_stage": "289273"
     },
     {
       "id": 72,
@@ -1821,7 +1963,9 @@
       "away_feed": null,
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021500",
+      "fifa_stage": "289273"
     },
     {
       "id": 73,
@@ -1836,7 +1980,9 @@
       "away_feed": "Runner-up Group B",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021518",
+      "fifa_stage": "289287"
     },
     {
       "id": 74,
@@ -1851,7 +1997,9 @@
       "away_feed": "3rd Group A/B/C/D/F",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021513",
+      "fifa_stage": "289287"
     },
     {
       "id": 75,
@@ -1866,7 +2014,9 @@
       "away_feed": "Runner-up Group C",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021522",
+      "fifa_stage": "289287"
     },
     {
       "id": 76,
@@ -1881,7 +2031,9 @@
       "away_feed": "Runner-up Group F",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021516",
+      "fifa_stage": "289287"
     },
     {
       "id": 77,
@@ -1896,7 +2048,9 @@
       "away_feed": "3rd Group C/D/F/G/H",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021523",
+      "fifa_stage": "289287"
     },
     {
       "id": 78,
@@ -1911,7 +2065,9 @@
       "away_feed": "Runner-up Group I",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021514",
+      "fifa_stage": "289287"
     },
     {
       "id": 79,
@@ -1926,7 +2082,9 @@
       "away_feed": "3rd Group C/E/F/H/I",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021520",
+      "fifa_stage": "289287"
     },
     {
       "id": 80,
@@ -1941,7 +2099,9 @@
       "away_feed": "3rd Group E/H/I/J/K",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021512",
+      "fifa_stage": "289287"
     },
     {
       "id": 81,
@@ -1956,7 +2116,9 @@
       "away_feed": "3rd Group B/E/F/I/J",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021524",
+      "fifa_stage": "289287"
     },
     {
       "id": 82,
@@ -1971,7 +2133,9 @@
       "away_feed": "3rd Group A/E/H/I/J",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021525",
+      "fifa_stage": "289287"
     },
     {
       "id": 83,
@@ -1986,7 +2150,9 @@
       "away_feed": "Runner-up Group L",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021526",
+      "fifa_stage": "289287"
     },
     {
       "id": 84,
@@ -2001,7 +2167,9 @@
       "away_feed": "Runner-up Group J",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021519",
+      "fifa_stage": "289287"
     },
     {
       "id": 85,
@@ -2016,7 +2184,9 @@
       "away_feed": "3rd Group E/F/G/I/J",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021527",
+      "fifa_stage": "289287"
     },
     {
       "id": 86,
@@ -2031,7 +2201,9 @@
       "away_feed": "Runner-up Group H",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021521",
+      "fifa_stage": "289287"
     },
     {
       "id": 87,
@@ -2046,7 +2218,9 @@
       "away_feed": "3rd Group D/E/I/J/L",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021517",
+      "fifa_stage": "289287"
     },
     {
       "id": 88,
@@ -2061,7 +2235,9 @@
       "away_feed": "Runner-up Group G",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021515",
+      "fifa_stage": "289287"
     },
     {
       "id": 89,
@@ -2076,7 +2252,9 @@
       "away_feed": "Winner Match 77",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021533",
+      "fifa_stage": "289288"
     },
     {
       "id": 90,
@@ -2091,7 +2269,9 @@
       "away_feed": "Winner Match 75",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021530",
+      "fifa_stage": "289288"
     },
     {
       "id": 91,
@@ -2106,7 +2286,9 @@
       "away_feed": "Winner Match 78",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021532",
+      "fifa_stage": "289288"
     },
     {
       "id": 92,
@@ -2121,7 +2303,9 @@
       "away_feed": "Winner Match 80",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021531",
+      "fifa_stage": "289288"
     },
     {
       "id": 93,
@@ -2136,7 +2320,9 @@
       "away_feed": "Winner Match 84",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021529",
+      "fifa_stage": "289288"
     },
     {
       "id": 94,
@@ -2151,7 +2337,9 @@
       "away_feed": "Winner Match 82",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021534",
+      "fifa_stage": "289288"
     },
     {
       "id": 95,
@@ -2166,7 +2354,9 @@
       "away_feed": "Winner Match 88",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021528",
+      "fifa_stage": "289288"
     },
     {
       "id": 96,
@@ -2181,7 +2371,9 @@
       "away_feed": "Winner Match 87",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021535",
+      "fifa_stage": "289288"
     },
     {
       "id": 97,
@@ -2196,7 +2388,9 @@
       "away_feed": "Winner Match 90",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021536",
+      "fifa_stage": "289289"
     },
     {
       "id": 98,
@@ -2211,7 +2405,9 @@
       "away_feed": "Winner Match 94",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021538",
+      "fifa_stage": "289289"
     },
     {
       "id": 99,
@@ -2226,7 +2422,9 @@
       "away_feed": "Winner Match 92",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021539",
+      "fifa_stage": "289289"
     },
     {
       "id": 100,
@@ -2241,7 +2439,9 @@
       "away_feed": "Winner Match 96",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021537",
+      "fifa_stage": "289289"
     },
     {
       "id": 101,
@@ -2256,7 +2456,9 @@
       "away_feed": "Winner Match 98",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021541",
+      "fifa_stage": "289290"
     },
     {
       "id": 102,
@@ -2271,7 +2473,9 @@
       "away_feed": "Winner Match 100",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021540",
+      "fifa_stage": "289290"
     },
     {
       "id": 103,
@@ -2286,7 +2490,9 @@
       "away_feed": "Loser Match 102",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021542",
+      "fifa_stage": "289291"
     },
     {
       "id": 104,
@@ -2301,7 +2507,9 @@
       "away_feed": "Winner Match 102",
       "home_score": null,
       "away_score": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "fifa_id": "400021543",
+      "fifa_stage": "289292"
     }
   ]
 }

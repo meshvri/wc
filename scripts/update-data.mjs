@@ -181,6 +181,10 @@ export function fifaMatchToEvent(m) {
     // finished reports finite scores (so applyResult marks finished).
     status: m.MatchStatus === 3 ? 'live' : 'scheduled',
     minute: typeof m.MatchTime === 'string' ? m.MatchTime : null,
+    // stable per-match FIFA ids so the detail page can deep-link to the
+    // per-match endpoints (live/timeline) which need idStage + idMatch.
+    fifa_id: m.IdMatch || null,
+    fifa_stage: m.IdStage || null,
   };
 }
 async function fromFIFA() {
@@ -232,6 +236,8 @@ async function main() {
       }
     }
     if (!target) continue;
+    // persist FIFA ids on every match (static; needed for detail deep-links)
+    if (e.fifa_id) { target.fifa_id = e.fifa_id; target.fifa_stage = e.fifa_stage; }
     if (applyResult(target, e.hs, e.as, e.status, e.winner, e.pens, e.duration)) applied++;
     else if (e.status === 'live') applied++;
   }

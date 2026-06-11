@@ -306,6 +306,10 @@ function matchRow(m, isNext) {
   rail.appendChild(el('span', 'venue', m.city || m.venue || ''));
   row.appendChild(rail);
 
+  if (m.fifa_id) {
+    row.classList.add('tappable');
+    row.addEventListener('click', () => { location.href = `match.html?m=${m.fifa_id}`; });
+  }
   return row;
 }
 
@@ -462,6 +466,10 @@ function tieCard(m) {
   const showScore = status === 'live' || status === 'finished' || status === 'pending';
   card.appendChild(tieSide(r.home, m, 'home', winSide, showScore));
   card.appendChild(tieSide(r.away, m, 'away', winSide, showScore));
+  if (m.fifa_id) {
+    card.classList.add('tappable');
+    card.addEventListener('click', () => { location.href = `match.html?m=${m.fifa_id}`; });
+  }
   return card;
 }
 

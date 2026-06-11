@@ -11,15 +11,18 @@
 // would freeze live results, so it is always fetched fresh with a cached
 // last-known fallback for offline.
 
-const SHELL = 'wc-shell-v3';
+const SHELL = 'wc-shell-v4';
 const DATA = 'wc-data-v1';
 const RUNTIME = 'wc-runtime-v1';
 
 const SHELL_ASSETS = [
   './',
   './index.html',
+  './match.html',
   './assets/styles.css',
+  './assets/match.css',
   './assets/app.js',
+  './assets/match.js',
   './assets/engine.js',
   './manifest.json',
   './assets/icon-192.png',
@@ -50,6 +53,9 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+
+  // 0) FIFA live API — always go to network (never cache live match data)
+  if (url.host === 'api.fifa.com') return;
 
   // 1) tournament data — NETWORK-FIRST (results must never be stale-cached)
   if (url.pathname.endsWith('/data/tournament.json')) {
