@@ -7,6 +7,7 @@
 // Run: node scripts/test-knockout.mjs   (exit 0 = all pass)
 import { readFileSync } from 'node:fs';
 import { resolve, displayStatus, resultLabel } from '../assets/engine.js';
+import { fifaMatchToEvent } from './update-data.mjs';
 
 let failures = 0;
 const ok = (cond, msg) => { if (cond) { console.log(`  ✓ ${msg}`); } else { console.error(`  ✗ ${msg}`); failures++; } };
@@ -79,6 +80,22 @@ console.log('Case D — explicit result_pending marker is honored:');
   const m = byId(data, KO);
   m.home_score = 1; m.away_score = 1; m.status = 'finished'; m.result_pending = true;
   ok(displayStatus(m, now) === 'pending', 'result_pending marker forces "pending"');
+}
+
+console.log('Case E — FIFA match mapping (scores, penalties, derived winner, live):');
+{
+  // upcoming: null scores -> NaN (so the updater skips it, stays upcoming)
+  const up = fifaMatchToEvent({ MatchNumber: 5, HomeTeamScore: null, AwayTeamScore: null, MatchStatus: 1 });
+  ok(Number.isNaN(up.hs) && Number.isNaN(up.as) && up.status === 'scheduled', 'upcoming -> NaN scores, scheduled');
+  // live 1-0 at 13'
+  const lv = fifaMatchToEvent({ MatchNumber: 1, HomeTeamScore: 1, AwayTeamScore: 0, MatchStatus: 3, MatchTime: "13'" });
+  ok(lv.status === 'live' && lv.hs === 1 && lv.as === 0 && lv.minute === "13'", 'live -> status live + score + minute');
+  // finished on penalties: level 1-1, away wins shootout 4-3 -> winner away, duration PENALTY_SHOOTOUT
+  const pk = fifaMatchToEvent({ MatchNumber: 73, HomeTeamScore: 1, AwayTeamScore: 1, HomeTeamPenaltyScore: 3, AwayTeamPenaltyScore: 4, MatchStatus: 0 });
+  ok(pk.winner === 'away' && pk.duration === 'PENALTY_SHOOTOUT' && pk.pens.home === 3 && pk.pens.away === 4, 'shootout -> winner from pens + duration + pens');
+  // finished in regulation 2-1 -> winner home, no pens
+  const ft = fifaMatchToEvent({ MatchNumber: 90, HomeTeamScore: 2, AwayTeamScore: 1, MatchStatus: 0 });
+  ok(ft.winner === 'home' && ft.pens === null && ft.duration === null, 'decisive result -> winner home, no pens');
 }
 
 console.log(failures === 0 ? '\nALL PASS ✅' : `\n${failures} FAILURE(S) ❌`);

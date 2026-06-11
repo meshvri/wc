@@ -60,6 +60,25 @@ function winnerSide(m) {
   return m.winner || null;
 }
 
+// --- live overlay (FIFA client poll) ---------------------------------------
+// LIVE_OV is a render-time overlay ONLY: id -> { home, away, min }. It never
+// touches committed DATA or the engine, so a transient live value can never
+// advance the bracket. It just freshens the score + minute of in-progress
+// matches between cron commits.
+let LIVE_OV = new Map();
+const liveOv = (m) => LIVE_OV.get(m.id) || null;
+const numOr0 = (v) => (Number.isFinite(v) ? v : 0);
+// display status / score / minute, preferring the live overlay
+const dStatus = (m) => (liveOv(m) ? 'live' : RES.resolved.get(m.id).status);
+function dScore(m, which) {
+  const ov = liveOv(m);
+  if (ov) return which === 'home' ? ov.home : ov.away;
+  return which === 'home' ? m.home_score : m.away_score;
+}
+const dMinute = (m) => (liveOv(m) ? liveOv(m).min : '');
+// only show a winner once truly finished (never mid-match)
+const dWinSide = (m) => (dStatus(m) === 'finished' ? winnerSide(m) : null);
+
 const STAR = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">'
   + '<path d="M12 3.2l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 16.9l-5.2 2.74.99-5.79-4.21-4.1 5.82-.85z"/></svg>';
 
@@ -67,6 +86,7 @@ const STAR = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"
 let DATA, RES, NOW, GCTX;
 let CODE_INDEX = new Map();      // code -> {name, code, group}
 let MATCHDAY = new Map();        // group match id -> matchday number (1-3)
+let MATCH_IDS = new Set();       // all our match ids (== FIFA MatchNumbers)
 const todayKey = () => fmtKey.format(new Date(NOW));
 
 // --- pinned teams (localStorage) -------------------------------------------
@@ -119,6 +139,7 @@ async function boot() {
   requestAnimationFrame(scrollToToday);
 
   setupLiveRefresh();
+  setupFifaLive();
   registerServiceWorker();
 }
 
@@ -150,6 +171,7 @@ function buildIndexes() {
       .sort((a, b) => Date.parse(a.kickoff_utc) - Date.parse(b.kickoff_utc))
       .forEach((m, i) => MATCHDAY.set(m.id, Math.floor(i / 2) + 1));
   }
+  MATCH_IDS = new Set(DATA.matches.map((m) => m.id));
 }
 
 // resolved sides for a match (group teams are concrete; knockouts resolved)
@@ -239,7 +261,6 @@ function renderMatches() {
 function matchRow(m, isNext) {
   const r = RES.resolved.get(m.id);
   const row = el('div', 'match');
-  row.dataset.status = r.status;
   row.dataset.stage = m.stage;
   row.id = `m${m.id}`;
   if (r.home?.code) row.dataset.homeCode = r.home.code;
@@ -259,20 +280,25 @@ function matchRow(m, isNext) {
   }
   row.appendChild(ko);
 
+  const status = dStatus(m);
+  row.dataset.status = status;
+
   // middle: teams
-  const winSide = winnerSide(m);
+  const winSide = dWinSide(m);
+  const showScore = status === 'live' || status === 'finished' || status === 'pending';
   const teams = el('div', 'teams');
-  teams.appendChild(teamLine(r.home, m, 'home', winSide));
-  teams.appendChild(teamLine(r.away, m, 'away', winSide));
+  teams.appendChild(teamLine(r.home, m, 'home', winSide, showScore));
+  teams.appendChild(teamLine(r.away, m, 'away', winSide, showScore));
   row.appendChild(teams);
 
   // right: status rail
   const rail = el('div', 'rail');
-  if (r.status === 'live') {
-    rail.appendChild(el('span', 'pill live', '<span class="dot"></span>LIVE'));
-  } else if (r.status === 'pending') {
+  if (status === 'live') {
+    const min = dMinute(m);
+    rail.appendChild(el('span', 'pill live', `<span class="dot"></span>LIVE${min ? ` ${min}` : ''}`));
+  } else if (status === 'pending') {
     rail.appendChild(el('span', 'pill pending', 'RESULT PENDING'));
-  } else if (r.status === 'finished') {
+  } else if (status === 'finished') {
     rail.appendChild(el('span', 'pill ft', m.stage === 'group' ? 'FT' : resultLabel(m)));
   } else if (isNext) {
     rail.appendChild(el('span', 'pill grp', 'NEXT'));
@@ -283,7 +309,7 @@ function matchRow(m, isNext) {
   return row;
 }
 
-function teamLine(side, m, which, winSide) {
+function teamLine(side, m, which, winSide, showScore) {
   const line = el('div', 'team');
   const isPlaceholder = !!side.placeholder;
   if (winSide) {
@@ -302,10 +328,11 @@ function teamLine(side, m, which, winSide) {
     line.appendChild(img);
     line.appendChild(el('span', 'name', side.name));
   }
-  const score = which === 'home' ? m.home_score : m.away_score;
-  if (Number.isFinite(score)) {
+  // a live or finished match always shows a number (never "null"): a kicked-off
+  // match with no goals yet reads 0, and the live overlay supplies the rest.
+  if (showScore && !isPlaceholder) {
     const pen = which === 'home' ? m.home_pens : m.away_pens;
-    const sc = el('span', 'sc tnum', String(score));
+    const sc = el('span', 'sc tnum', String(numOr0(dScore(m, which))));
     if (Number.isFinite(pen)) sc.appendChild(el('span', 'pens', `(${pen})`));
     line.appendChild(sc);
   }
@@ -417,24 +444,28 @@ function renderBracket() {
 
 function tieCard(m) {
   const r = RES.resolved.get(m.id);
+  const status = dStatus(m);
   const card = el('div', 'tie');
-  card.dataset.status = r.status;
+  card.dataset.status = status;
   if (m.stage === 'final') card.classList.add('champ');
 
   const head = el('div', 'mno');
-  const right = r.status === 'pending'
+  const right = status === 'pending'
     ? '<b class="pend">Result pending</b>'
-    : `${fmtChip.format(new Date(m.kickoff_utc))} · ${fmtTime.format(new Date(m.kickoff_utc))}`;
+    : status === 'live'
+      ? `<b class="pend" style="color:var(--live)">LIVE${dMinute(m) ? ` ${dMinute(m)}` : ''}</b>`
+      : `${fmtChip.format(new Date(m.kickoff_utc))} · ${fmtTime.format(new Date(m.kickoff_utc))}`;
   head.innerHTML = `<span>Match ${m.id}</span><span>${right}</span>`;
   card.appendChild(head);
 
-  const winSide = winnerSide(m);
-  card.appendChild(tieSide(r.home, m, 'home', winSide));
-  card.appendChild(tieSide(r.away, m, 'away', winSide));
+  const winSide = dWinSide(m);
+  const showScore = status === 'live' || status === 'finished' || status === 'pending';
+  card.appendChild(tieSide(r.home, m, 'home', winSide, showScore));
+  card.appendChild(tieSide(r.away, m, 'away', winSide, showScore));
   return card;
 }
 
-function tieSide(side, m, which, winSide) {
+function tieSide(side, m, which, winSide, showScore) {
   const row = el('div', 'side');
   if (winSide) row.classList.add(which === winSide ? 'win' : 'lose');
   if (side && side.code) row.dataset.team = side.code;
@@ -445,8 +476,7 @@ function tieSide(side, m, which, winSide) {
     row.innerHTML = `<img class="flag" src="${flagURL(side.code)}" alt="${side.name}" loading="lazy" width="20" height="15">`
       + `<span class="nm">${side.name}</span>`;
   }
-  const score = which === 'home' ? m.home_score : m.away_score;
-  if (Number.isFinite(score)) row.appendChild(el('span', 'sc tnum', String(score)));
+  if (showScore && !side.placeholder) row.appendChild(el('span', 'sc tnum', String(numOr0(dScore(m, which)))));
   return row;
 }
 
@@ -536,7 +566,7 @@ function renderPinStrip() {
 function pinCard(code) {
   const team = CODE_INDEX.get(code);
   const list = matchesForCode(code);
-  const statusOf = (x) => RES.resolved.get(x.m.id).status;
+  const statusOf = (x) => dStatus(x.m);
   const pick = list.find((x) => statusOf(x) === 'live')
     || list.find((x) => statusOf(x) === 'upcoming' && Date.parse(x.m.kickoff_utc) >= NOW)
     || [...list].reverse().find((x) => statusOf(x) === 'finished')
@@ -550,12 +580,13 @@ function pinCard(code) {
     const r = RES.resolved.get(m.id);
     const opp = side === 'home' ? r.away : r.home;
     const oppName = opp.placeholder ? 'TBD' : opp.name;
-    const st = r.status;
+    const st = dStatus(m);
+    const me = numOr0(dScore(m, side));
+    const them = numOr0(dScore(m, side === 'home' ? 'away' : 'home'));
     if (st === 'live') {
-      sub = `<b class="lv">● LIVE</b> ${m.home_score}–${m.away_score} v ${oppName}`;
+      const min = dMinute(m);
+      sub = `<b class="lv">● LIVE${min ? ` ${min}` : ''}</b> ${me}–${them} v ${oppName}`;
     } else if (st === 'finished') {
-      const me = side === 'home' ? m.home_score : m.away_score;
-      const them = side === 'home' ? m.away_score : m.home_score;
       sub = `FT ${me}–${them} v ${oppName}`;
     } else {
       sub = `${fmtChip.format(new Date(m.kickoff_utc))}, ${fmtTime.format(new Date(m.kickoff_utc))} v ${oppName}`;
@@ -588,13 +619,23 @@ function applyPins() {
 function goToMatch(id) {
   selectTab('matches');
   history.replaceState(null, '', '#matches');
-  const target = document.getElementById(`m${id}`);
-  if (!target) return;
-  const top = target.getBoundingClientRect().top + window.scrollY - 132;
-  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-  target.classList.remove('flash');
-  void target.offsetWidth; // restart the flash animation
-  target.classList.add('flash');
+  // measure AFTER the matches view is shown (selectTab may have just unhidden
+  // it), and offset by the REAL occluding height: sticky top bar + the section's
+  // sticky day header. The old fixed -132 was shorter than the bar on mobile, so
+  // the target landed under it — worst for the first match. This lands it fully
+  // in view for every match, first included.
+  requestAnimationFrame(() => {
+    const target = document.getElementById(`m${id}`);
+    if (!target) return;
+    const barH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bar-h'), 10) || 120;
+    const hdr = target.closest('section') && target.closest('section').querySelector('.dayhdr');
+    const offset = barH + (hdr ? hdr.offsetHeight : 0) + 12;
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    target.classList.remove('flash');
+    void target.offsetWidth; // restart the flash animation
+    target.classList.add('flash');
+  });
 }
 
 // === Now / Next pill =======================================================
@@ -612,9 +653,9 @@ function fmtCountdown(ms) {
 
 function pickFeature() {
   const sorted = [...DATA.matches].sort((a, b) => Date.parse(a.kickoff_utc) - Date.parse(b.kickoff_utc));
-  const live = sorted.find((m) => RES.resolved.get(m.id).status === 'live');
+  const live = sorted.find((m) => dStatus(m) === 'live');
   if (live) return { m: live, kind: 'live' };
-  const next = sorted.find((m) => RES.resolved.get(m.id).status === 'upcoming' && Date.parse(m.kickoff_utc) >= Date.now());
+  const next = sorted.find((m) => dStatus(m) === 'upcoming' && Date.parse(m.kickoff_utc) >= Date.now());
   return next ? { m: next, kind: 'next' } : null;
 }
 
@@ -676,10 +717,11 @@ function updateNowPill() {
   pillEl.classList.toggle('pinned', isPinned(r.home.code) || isPinned(r.away.code));
   if (kind === 'live') {
     pillEl.dataset.live = '1';
+    const min = dMinute(m);
     pillEl.innerHTML = `<span class="np-dot"></span>`
-      + `<span class="np-main">${flagMini(r.home)}<b class="tnum">${m.home_score}</b>`
-      + `<span class="np-v">–</span><b class="tnum">${m.away_score}</b>${flagMini(r.away)}</span>`
-      + `<span class="np-tag">LIVE</span>`;
+      + `<span class="np-main">${flagMini(r.home)}<b class="tnum">${numOr0(dScore(m, 'home'))}</b>`
+      + `<span class="np-v">–</span><b class="tnum">${numOr0(dScore(m, 'away'))}</b>${flagMini(r.away)}</span>`
+      + `<span class="np-tag">LIVE${min ? ` ${min}` : ''}</span>`;
   } else {
     delete pillEl.dataset.live;
     const cd = fmtCountdown(Date.parse(m.kickoff_utc) - Date.now());
@@ -727,6 +769,71 @@ async function maybeRefresh() {
       updateNowPill();
     }
   } catch (e) { /* offline — keep last-known data on screen */ }
+}
+
+// === FIFA live overlay (key-free, CORS-open, overlay-only) =================
+// Polls FIFA's calendar feed while a WC match is live (or about to be) and the
+// tab is visible; overlays goals + minute onto live rows + the pill via LIVE_OV.
+// Best-effort: errors back off and we silently fall back to the committed cron
+// data. It never mutates DATA or the bracket.
+const FIFA_LIVE_URL = 'https://api.fifa.com/api/v3/calendar/matches?idCompetition=17&idSeason=285023&count=500&language=en';
+const FIFA_BASE_MS = 45000;
+let fifaTimer = null, fifaBackoff = 0;
+
+function setupFifaLive() {
+  scheduleFifa(2500);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') scheduleFifa(1500);
+  });
+}
+function scheduleFifa(delay) {
+  clearTimeout(fifaTimer);
+  fifaTimer = setTimeout(fifaTick, delay);
+}
+function overlayEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const [k, v] of a) {
+    const w = b.get(k);
+    if (!w || w.home !== v.home || w.away !== v.away || w.min !== v.min) return false;
+  }
+  return true;
+}
+async function fifaTick() {
+  if (document.visibilityState !== 'visible' || (!shouldPoll() && LIVE_OV.size === 0)) {
+    scheduleFifa(FIFA_BASE_MS);
+    return;
+  }
+  try {
+    const res = await fetch(FIFA_LIVE_URL, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    if (!res.ok) throw new Error(`http ${res.status}`);
+    const json = await res.json();
+    const rows = json.Results || [];
+    if (rows.length < 64) throw new Error('unexpected shape');
+    const next = new Map();
+    for (const r of rows) {
+      if (r.MatchStatus === 3 && MATCH_IDS.has(r.MatchNumber)) {
+        next.set(r.MatchNumber, {
+          home: r.HomeTeamScore == null ? 0 : Number(r.HomeTeamScore),
+          away: r.AwayTeamScore == null ? 0 : Number(r.AwayTeamScore),
+          min: typeof r.MatchTime === 'string' ? r.MatchTime : '',
+        });
+      }
+    }
+    fifaBackoff = 0;
+    if (!overlayEqual(LIVE_OV, next)) {
+      LIVE_OV = next;
+      rerenderAll();
+      observePillVisibility();
+    }
+    scheduleFifa(FIFA_BASE_MS);
+  } catch (e) {
+    fifaBackoff = Math.min(5, fifaBackoff + 1);
+    if (fifaBackoff >= 3 && LIVE_OV.size) { // give up the overlay; fall back to committed
+      LIVE_OV = new Map();
+      rerenderAll();
+    }
+    scheduleFifa(FIFA_BASE_MS * (1 + fifaBackoff));
+  }
 }
 
 function registerServiceWorker() {

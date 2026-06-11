@@ -1,5 +1,43 @@
 # Live-data approach — decision
 
+> **UPDATE 2026-06-11 (supersedes the original decision below): FIFA official feed is now the
+> primary source, and a key-free live layer DOES show the elapsed minute.** See next section.
+
+## FIFA official feed — primary (key-free, CORS-open, live minute)
+
+**Decision:** Use FIFA's public app feed `api.fifa.com` as the authoritative primary source,
+both server-side (cron) and as a client-side live overlay. football-data.org is automatic
+fallback #2, TheSportsDB #3. The static 104-match file remains the offline fallback.
+
+Verified live on 2026-06-11 (opening day, opener in progress):
+- `GET /api/v3/calendar/matches?idCompetition=17&idSeason=285023&count=500&language=en`
+  → **HTTP 200, CORS `Access-Control-Allow-Origin: *`, 104 matches**, with `HomeTeamScore` /
+  `AwayTeamScore`, `HomeTeamPenaltyScore` / `AwayTeamPenaltyScore`, `MatchStatus` (3 = live),
+  `MatchTime` (e.g. `"27'"`), and stage. **The calendar updates live** (opener read
+  `1–0, 27'` in real time).
+- `MatchNumber` (1..104) maps **1:1** onto our match ids — overlay is exact, no fuzzy
+  matching. Stages map by number range (1–72 group, 73–88 R32, … 104 final). Upcoming
+  matches report `null` scores (not 0), so a not-started match is never mis-marked 0–0.
+- idCompetition `17` = FIFA World Cup, idSeason `285023` = 2026.
+
+**Cron (`scripts/update-data.mjs → fromFIFA`)** overlays scores/penalties/derived-winner by
+match number; `meta.source` reads `api.fifa.com`. **Client live layer (`app.js`)** polls the
+same calendar every ~45s while a WC match is live and the tab is visible, overlaying goals +
+minute onto rows + the Now/Next pill (e.g. `🇲🇽 1–0 🇿🇦 LIVE 27'`). It is **overlay-only**
+(`LIVE_OV`, never mutates committed data or the bracket), pauses when hidden, backs off on
+error, and falls back silently to the committed cron data.
+
+FIFA is undocumented, so every call degrades gracefully: a non-200 / unexpected shape falls
+back to football-data.org automatically. Polling is polite (≥45s, exponential backoff).
+
+**API-Football (api-sports.io) — rejected.** Its free plan is paywalled for 2026
+(`/fixtures?league=1&season=2026` → 0 results, "Free plans do not have access to this season,
+try from 2022 to 2024"). Not wired in.
+
+---
+
+## Original decision (now the fallback layer)
+
 **Date:** 2026-06-11
 **Decision:** Cron stays the single source of truth. The browser **self-refreshes our own
 `data/tournament.json`** (same-origin, no key) during match windows for no-reload

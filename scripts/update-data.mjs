@@ -156,13 +156,51 @@ async function fromSportsDB(key) {
   return out;
 }
 
+// FIFA's official app feed (api.fifa.com) — authoritative, free, no key, CORS *.
+// Undocumented, so used best-effort with automatic fallback. Matches map by
+// MatchNumber (1..104) directly onto our match ids — no fuzzy matching. The
+// calendar endpoint carries live scores, the minute, penalties and stage.
+export const FIFA_CALENDAR = 'https://api.fifa.com/api/v3/calendar/matches?idCompetition=17&idSeason=285023&count=500&language=en';
+export function fifaMatchToEvent(m) {
+  const num = m.MatchNumber;
+  const hs = m.HomeTeamScore == null ? NaN : Number(m.HomeTeamScore);
+  const as = m.AwayTeamScore == null ? NaN : Number(m.AwayTeamScore);
+  const ph = m.HomeTeamPenaltyScore == null ? null : Number(m.HomeTeamPenaltyScore);
+  const pa = m.AwayTeamPenaltyScore == null ? null : Number(m.AwayTeamPenaltyScore);
+  const pens = Number.isFinite(ph) && Number.isFinite(pa) ? { home: ph, away: pa } : null;
+  let winner = null;
+  if (Number.isFinite(hs) && Number.isFinite(as)) {
+    if (hs > as) winner = 'home';
+    else if (as > hs) winner = 'away';
+    else if (pens) winner = pens.home > pens.away ? 'home' : pens.away > pens.home ? 'away' : null;
+  }
+  return {
+    num, hs, as, pens, winner,
+    duration: pens ? 'PENALTY_SHOOTOUT' : null,
+    // MatchStatus 3 = live; upcoming reports null scores (so applyResult skips),
+    // finished reports finite scores (so applyResult marks finished).
+    status: m.MatchStatus === 3 ? 'live' : 'scheduled',
+    minute: typeof m.MatchTime === 'string' ? m.MatchTime : null,
+  };
+}
+async function fromFIFA() {
+  const res = await fetch(FIFA_CALENDAR, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`fifa ${res.status}`);
+  const json = await res.json();
+  const rows = json.Results || [];
+  if (rows.length < 64) throw new Error(`fifa shape (${rows.length} rows)`);
+  return rows.map(fifaMatchToEvent);
+}
+
 // --- merge ------------------------------------------------------------------
 async function main() {
   const token = (process.env.FOOTBALL_DATA_TOKEN || '').trim() || undefined;
   const sdbKey = process.env.THESPORTSDB_KEY || '3';
 
   let events = null, source = null;
-  if (token) {
+  try { events = await fromFIFA(); source = 'api.fifa.com'; }
+  catch (e) { console.warn('fifa failed:', e.message); }
+  if (!events && token) {
     try { events = await fromFootballData(token); source = 'football-data.org'; }
     catch (e) { console.warn('football-data failed:', e.message); }
   }
@@ -176,15 +214,22 @@ async function main() {
     return; // leave file untouched
   }
 
+  const byNum = new Map(data.matches.map((m) => [m.id, m]));
   let applied = 0;
   for (const e of events) {
-    if (!e.home || !e.away) continue;
-    // group → match by team pair
-    const pk = [canon(e.home), canon(e.away)].filter(Boolean).sort().join(' | ');
-    let target = groupByPair.get(pk);
-    // knockout → match by round + nearest kickoff
-    if (!target && e.stage && e.stage !== 'group' && e.utcDate) {
-      target = findKnockout(e.stage, e.utcDate);
+    let target = null;
+    if (e.num != null) {
+      // FIFA: direct, exact mapping by official match number
+      target = byNum.get(e.num);
+    } else {
+      if (!e.home || !e.away) continue;
+      // group → match by team pair
+      const pk = [canon(e.home), canon(e.away)].filter(Boolean).sort().join(' | ');
+      target = groupByPair.get(pk);
+      // knockout → match by round + nearest kickoff
+      if (!target && e.stage && e.stage !== 'group' && e.utcDate) {
+        target = findKnockout(e.stage, e.utcDate);
+      }
     }
     if (!target) continue;
     if (applyResult(target, e.hs, e.as, e.status, e.winner, e.pens, e.duration)) applied++;
@@ -197,4 +242,7 @@ async function main() {
   console.log(`Source: ${source} · ${events.length} events seen · ${applied} results overlaid.`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Only run when invoked directly (so tests can import the pure mappers).
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}
