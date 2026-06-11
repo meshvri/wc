@@ -21,6 +21,7 @@
   .header h1 { font-size:1.4rem; font-weight:900; color:var(--gold-light); }
   .header p { color:var(--muted); font-size:0.82rem; margin-top:2px; }
   .header .out { position:absolute; left:14px; top:calc(env(safe-area-inset-top) + 18px); background:none; border:1px solid var(--border); color:var(--muted); border-radius:18px; padding:5px 12px; font-family:inherit; font-size:0.72rem; font-weight:700; cursor:pointer; }
+  .header .sched { position:absolute; right:14px; top:calc(env(safe-area-inset-top) + 18px); border:1px solid var(--gold); color:var(--gold-light); border-radius:18px; padding:5px 12px; font-size:0.72rem; font-weight:700; text-decoration:none; }
 
   .tabs { display:flex; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:62px; z-index:99; }
   .tab { flex:1; padding:13px 6px; text-align:center; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--muted); border-bottom:3px solid transparent; transition:all 0.2s; font-family:inherit; background:none; }
@@ -118,6 +119,7 @@
 <div id="mainApp" style="display:none;">
   <div class="header">
     <button class="out" id="logoutBtn">خروج</button>
+    <a class="sched" href="./">📅 الجدول</a>
     <h1>🏆 توقعات 2026</h1>
     <p id="welcomeMsg"></p>
   </div>
