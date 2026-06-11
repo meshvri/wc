@@ -61,23 +61,33 @@ function winnerSide(m) {
 }
 
 // --- live overlay (FIFA client poll) ---------------------------------------
-// LIVE_OV is a render-time overlay ONLY: id -> { home, away, min }. It never
-// touches committed DATA or the engine, so a transient live value can never
-// advance the bracket. It just freshens the score + minute of in-progress
-// matches between cron commits.
+// LIVE_OV is a render-time overlay ONLY: id -> { home, away, min, status }. It
+// never touches committed DATA or the engine, so it can never advance the
+// bracket. It freshens the score/minute of in-progress matches AND bridges the
+// gap for a JUST-finished match until the (slower) cron commits the final — so
+// the page never shows a stale "1-0 LIVE" after FIFA already says "2-0 FT".
 let LIVE_OV = new Map();
 const liveOv = (m) => LIVE_OV.get(m.id) || null;
 const numOr0 = (v) => (Number.isFinite(v) ? v : 0);
-// display status / score / minute, preferring the live overlay
-const dStatus = (m) => (liveOv(m) ? 'live' : RES.resolved.get(m.id).status);
+// display status / score / minute, preferring the overlay
+const dStatus = (m) => (liveOv(m) ? liveOv(m).status : RES.resolved.get(m.id).status);
 function dScore(m, which) {
   const ov = liveOv(m);
   if (ov) return which === 'home' ? ov.home : ov.away;
   return which === 'home' ? m.home_score : m.away_score;
 }
-const dMinute = (m) => (liveOv(m) ? liveOv(m).min : '');
-// only show a winner once truly finished (never mid-match)
-const dWinSide = (m) => (dStatus(m) === 'finished' ? winnerSide(m) : null);
+const dMinute = (m) => { const ov = liveOv(m); return ov && ov.status === 'live' ? ov.min : ''; };
+// only show a winner once finished — computed from the overlay score when present
+function dWinSide(m) {
+  const ov = liveOv(m);
+  if (ov) {
+    if (ov.status !== 'finished') return null;
+    if (ov.home > ov.away) return 'home';
+    if (ov.away > ov.home) return 'away';
+    return m.winner || null; // level: penalty winner from committed data
+  }
+  return dStatus(m) === 'finished' ? winnerSide(m) : null;
+}
 
 const STAR = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">'
   + '<path d="M12 3.2l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 16.9l-5.2 2.74.99-5.79-4.21-4.1 5.82-.85z"/></svg>';
@@ -802,7 +812,7 @@ function overlayEqual(a, b) {
   if (a.size !== b.size) return false;
   for (const [k, v] of a) {
     const w = b.get(k);
-    if (!w || w.home !== v.home || w.away !== v.away || w.min !== v.min) return false;
+    if (!w || w.home !== v.home || w.away !== v.away || w.min !== v.min || w.status !== v.status) return false;
   }
   return true;
 }
@@ -817,14 +827,23 @@ async function fifaTick() {
     const json = await res.json();
     const rows = json.Results || [];
     if (rows.length < 64) throw new Error('unexpected shape');
+    const committed = new Map(DATA.matches.map((m) => [m.id, m]));
     const next = new Map();
     for (const r of rows) {
-      if (r.MatchStatus === 3 && MATCH_IDS.has(r.MatchNumber)) {
+      if (!MATCH_IDS.has(r.MatchNumber)) continue;
+      const fhs = r.HomeTeamScore == null ? null : Number(r.HomeTeamScore);
+      const fas = r.AwayTeamScore == null ? null : Number(r.AwayTeamScore);
+      if (r.MatchStatus === 3) {
         next.set(r.MatchNumber, {
-          home: r.HomeTeamScore == null ? 0 : Number(r.HomeTeamScore),
-          away: r.AwayTeamScore == null ? 0 : Number(r.AwayTeamScore),
-          min: typeof r.MatchTime === 'string' ? r.MatchTime : '',
+          home: fhs == null ? 0 : fhs, away: fas == null ? 0 : fas,
+          min: typeof r.MatchTime === 'string' ? r.MatchTime : '', status: 'live',
         });
+      } else if (Number.isFinite(fhs) && Number.isFinite(fas)) {
+        // FIFA reports it finished — bridge until the committed file catches up,
+        // so a just-ended match shows the real final instead of a stale live score
+        const cm = committed.get(r.MatchNumber);
+        const caught = cm && cm.status === 'finished' && cm.home_score === fhs && cm.away_score === fas;
+        if (!caught) next.set(r.MatchNumber, { home: fhs, away: fas, min: '', status: 'finished' });
       }
     }
     fifaBackoff = 0;
