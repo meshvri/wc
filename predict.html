@@ -17,13 +17,16 @@
   body { font-family:'Cairo',sans-serif; background:var(--dark); color:var(--text); min-height:100vh; -webkit-text-size-adjust:100%; }
   img { display:block; }
 
-  .header { background:linear-gradient(135deg,#0d1f14,#1a3825); border-bottom:2px solid var(--gold); padding:calc(env(safe-area-inset-top) + 16px) 20px 12px; text-align:center; position:sticky; top:0; z-index:100; }
+  /* header + tabs travel together as one sticky bar, so the bar can never
+     partly slide behind itself regardless of header height or safe-area inset */
+  .topbar { position:sticky; top:0; z-index:100; background:var(--dark); }
+  .header { background:linear-gradient(135deg,#0d1f14,#1a3825); border-bottom:2px solid var(--gold); padding:calc(env(safe-area-inset-top) + 16px) 20px 12px; text-align:center; position:relative; }
   .header h1 { font-size:1.4rem; font-weight:900; color:var(--gold-light); }
   .header p { color:var(--muted); font-size:0.82rem; margin-top:2px; }
   .header .out { position:absolute; left:14px; top:calc(env(safe-area-inset-top) + 18px); background:none; border:1px solid var(--border); color:var(--muted); border-radius:18px; padding:5px 12px; font-family:inherit; font-size:0.72rem; font-weight:700; cursor:pointer; }
   .header .sched { position:absolute; right:14px; top:calc(env(safe-area-inset-top) + 18px); border:1px solid var(--gold); color:var(--gold-light); border-radius:18px; padding:5px 12px; font-size:0.72rem; font-weight:700; text-decoration:none; }
 
-  .tabs { display:flex; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:62px; z-index:99; }
+  .tabs { display:flex; background:var(--card); border-bottom:1px solid var(--line); }
   .tab { flex:1; padding:13px 6px; text-align:center; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--muted); border-bottom:3px solid transparent; transition:all 0.2s; font-family:inherit; background:none; }
   .tab.active { color:var(--gold-light); border-bottom-color:var(--gold); background:var(--card2); }
 
@@ -40,6 +43,11 @@
 
   .match-card { background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px; border:1px solid var(--line); }
   .match-card.locked { opacity:0.96; }
+  .match-card.focus-flash { animation:focusFlash 1.6s ease-out; }
+  @keyframes focusFlash {
+    0%,40% { box-shadow:0 0 0 2px var(--gold), 0 0 18px rgba(201,162,39,0.45); border-color:var(--gold); }
+    100% { box-shadow:none; }
+  }
   .match-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:0.74rem; color:var(--muted); }
   .match-when { font-weight:600; }
   .st-chip { font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:20px; }
@@ -117,16 +125,18 @@
 </div>
 
 <div id="mainApp" style="display:none;">
-  <div class="header">
-    <button class="out" id="logoutBtn">خروج</button>
-    <a class="sched" href="./">📅 الجدول</a>
-    <h1>🏆 توقعات 2026</h1>
-    <p id="welcomeMsg"></p>
-  </div>
-  <div class="tabs">
-    <button class="tab active" data-tab="predictions">⚽ توقعاتي</button>
-    <button class="tab" data-tab="leaderboard">🏅 الترتيب</button>
-    <button class="tab" data-tab="results">📋 النتائج</button>
+  <div class="topbar">
+    <div class="header">
+      <button class="out" id="logoutBtn">خروج</button>
+      <a class="sched" href="./">📅 الجدول</a>
+      <h1>🏆 توقعات 2026</h1>
+      <p id="welcomeMsg"></p>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="predictions">⚽ توقعاتي</button>
+      <button class="tab" data-tab="leaderboard">🏅 الترتيب</button>
+      <button class="tab" data-tab="results">📋 النتائج</button>
+    </div>
   </div>
   <div id="tab-predictions" class="section active"></div>
   <div id="tab-leaderboard" class="section"></div>
@@ -137,6 +147,7 @@
 
 <script type="module">
 import { resolve, displayStatus, hasScore } from './assets/engine.js';
+import { scoreOutcome, reconcilePrediction, nearestMatchIndex } from './assets/predict-logic.js';
 
 const SUPABASE_URL = 'https://ioradtnlrxbffkfgkyls.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_AGBc0x8K5z9ZMr-I5MzoBA_ERrYu_IV';
@@ -210,25 +221,41 @@ async function loadMyPred() {
 }
 
 // ── auth (name only) ────────────────────────────────────────────────────────
+// Name-only "session": one row per name in `players` + the name in localStorage
+// so the login persists across the tournament. Robust against a slow or failed
+// network — the button shows progress and a failure never dead-ends the screen.
+let loggingIn = false;
 async function login(name) {
   name = (name || '').trim();
-  if (!name) return;
-  const { data, error } = await sb.from('players').upsert({ name }, { onConflict: 'name' }).select().single();
-  if (error) { toast('تعذّر الاتصال بقاعدة البيانات', 'err'); return; }
-  PLAYER = data;
-  localStorage.setItem('wcp_name', name);
-  await loadMyPred();
-  $('#loginScreen').style.display = 'none';
-  $('#mainApp').style.display = 'block';
-  $('#welcomeMsg').textContent = `أهلاً ${name} 👋`;
-  renderPredictions();
+  if (!name || loggingIn) return; // ignore empty / double submits
+  loggingIn = true;
+  const btn = $('#loginBtn');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الدخول...'; }
+  try {
+    const { data, error } = await sb.from('players').upsert({ name }, { onConflict: 'name' }).select().single();
+    if (error || !data) { toast('تعذّر الاتصال بقاعدة البيانات، حاول مرة أخرى', 'err'); return; }
+    PLAYER = data;
+    localStorage.setItem('wcp_name', name);
+    if (!DATA) { try { await loadTournament(); } catch (e) {} } // ensure the schedule is ready
+    await loadMyPred();
+    $('#loginScreen').style.display = 'none';
+    $('#mainApp').style.display = 'block';
+    $('#welcomeMsg').textContent = `أهلاً ${name} 👋`;
+    renderPredictions(true); // open on the nearest match
+  } catch (e) {
+    toast('تعذّر الاتصال، تحقّق من الإنترنت وحاول مجدداً', 'err');
+  } finally {
+    loggingIn = false;
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+  }
 }
 function logout() { localStorage.removeItem('wcp_name'); location.reload(); }
 
 // ── render: predictions ─────────────────────────────────────────────────────
 function sectionKey(m) { return m.stage === 'group' ? `المجموعة ${m.group}` : STAGE_AR[m.stage]; }
 
-function renderPredictions() {
+function renderPredictions(focus = false) {
   const host = $('#tab-predictions');
   let html = `<div class="card"><div class="pts-legend">
       <div class="pts-item"><span class="pts-val">3</span>نتيجة مطابقة</div>
@@ -243,6 +270,25 @@ function renderPredictions() {
     html += matchCard(m);
   }
   host.innerHTML = html;
+  if (focus) scrollToNearest();
+}
+
+// Open the predictions view on the match that matters now (live, else next
+// upcoming, else the last). Offset by the sticky top-bar so the card isn't
+// hidden underneath it.
+function scrollToNearest() {
+  const i = nearestMatchIndex(MATCHES, Date.now());
+  if (i < 0) return;
+  const el = document.getElementById('m_' + MATCHES[i].id);
+  if (!el) return;
+  requestAnimationFrame(() => {
+    const bar = document.querySelector('.topbar');
+    const offset = (bar ? bar.offsetHeight : 0) + 10;
+    const y = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    el.classList.add('focus-flash');
+    setTimeout(() => el.classList.remove('focus-flash'), 1600);
+  });
 }
 
 function teamCell(side) {
@@ -300,7 +346,7 @@ function matchCard(m) {
       <button class="save-btn" data-act="save" data-m="${m.id}">💾 حفظ التوقع</button>`;
   }
 
-  return `<div class="match-card ${m.locked ? 'locked' : ''}">
+  return `<div class="match-card ${m.locked ? 'locked' : ''}" id="m_${m.id}">
       <div class="match-head"><span class="match-when">${when}</span>${statusChip(m)}</div>
       <div class="teams-row">${teamCell(m.home)}${mid}${teamCell(m.away)}</div>
       ${body}
@@ -312,12 +358,46 @@ function pickLabel(m, pr) {
   return 'تعادل';
 }
 
-// pick a result button (in-memory until save)
+// read the two score boxes of a card as numbers (NaN when empty)
+function cardScore(card) {
+  return {
+    hs: parseInt(card.querySelector('input[id^="hs_"]')?.value, 10),
+    as: parseInt(card.querySelector('input[id^="as_"]')?.value, 10),
+  };
+}
+// highlight the winner button matching result code r ('h' | 'd' | 'a')
+function highlightResult(card, r) {
+  card.querySelectorAll('.result-btn').forEach((b) => { b.className = 'result-btn'; });
+  const btn = card.querySelector(`.result-btn[data-r="${r}"]`);
+  if (btn) btn.className = `result-btn ${r === 'h' ? 'sel-win' : r === 'd' ? 'sel-draw' : 'sel-lose'}`;
+}
+
+// pick a winner (in-memory until save). The written score is authoritative:
+// a pick that contradicts a complete scoreline is refused with an Arabic note,
+// and the score-consistent winner is kept highlighted instead.
 function pick(matchId, r, btn) {
   const card = btn.closest('.match-card');
-  card.querySelectorAll('.result-btn').forEach((b) => { b.className = 'result-btn'; });
-  btn.className = `result-btn ${r === 'h' ? 'sel-win' : r === 'd' ? 'sel-draw' : 'sel-lose'}`;
+  const { hs, as } = cardScore(card);
+  const fromScore = scoreOutcome(hs, as);
+  if (fromScore && fromScore !== r) {
+    toast('الفائز لا يطابق النتيجة المكتوبة', 'err');
+    highlightResult(card, fromScore);
+    MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: fromScore };
+    return;
+  }
+  highlightResult(card, r);
   MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: r };
+}
+
+// keep the winner buttons in step as the user types a score, so the card can
+// never show a winner that disagrees with the scoreline
+function syncFromScore(matchId, card) {
+  const { hs, as } = cardScore(card);
+  const fromScore = scoreOutcome(hs, as);
+  if (fromScore) {
+    highlightResult(card, fromScore);
+    MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: fromScore };
+  }
 }
 
 async function savePred(matchId) {
@@ -325,18 +405,20 @@ async function savePred(matchId) {
   if (!m || m.locked) { toast('انتهى وقت التوقّع لهذه المباراة', 'err'); refreshAndRerender(); return; }
   const hsv = parseInt($('#hs_' + matchId).value, 10);
   const asv = parseInt($('#as_' + matchId).value, 10);
-  let result = (MYPRED[matchId] || {}).result;
-  if (Number.isFinite(hsv) && Number.isFinite(asv)) result = hsv > asv ? 'h' : hsv < asv ? 'a' : 'd';
-  if (!result) { toast('اختر النتيجة أو أدخل الأهداف', 'err'); return; }
+  // score is the source of truth; reconcile against any winner pick
+  const rec = reconcilePrediction({ pick: (MYPRED[matchId] || {}).result, hs: hsv, as: asv });
+  if (!rec.ok) { toast(rec.message, 'err'); return; }
   const row = {
-    player_id: PLAYER.id, match_id: matchId, result,
+    player_id: PLAYER.id, match_id: matchId, result: rec.result,
     home_score: Number.isFinite(hsv) ? hsv : null,
     away_score: Number.isFinite(asv) ? asv : null,
   };
-  const { error } = await sb.from('predictions').upsert(row, { onConflict: 'player_id,match_id' });
-  if (error) { toast('خطأ في الحفظ', 'err'); return; }
+  try {
+    const { error } = await sb.from('predictions').upsert(row, { onConflict: 'player_id,match_id' });
+    if (error) { toast('خطأ في الحفظ', 'err'); return; }
+  } catch (e) { toast('تعذّر حفظ التوقع، حاول مجدداً', 'err'); return; }
   MYPRED[matchId] = row;
-  toast('✅ تم حفظ التوقع');
+  toast(rec.conflict ? '✅ حُفظ حسب النتيجة المكتوبة' : '✅ تم حفظ التوقع');
 }
 
 // ── render: leaderboard (auto-scored from live results) ──────────────────────
@@ -401,7 +483,7 @@ async function renderResults() {
   host.innerHTML = html;
 }
 
-async function refreshAndRerender() { await loadTournament(); await loadMyPred(); renderPredictions(); }
+async function refreshAndRerender(focus = false) { await loadTournament(); await loadMyPred(); renderPredictions(focus); }
 
 // ── events ──────────────────────────────────────────────────────────────────
 function toast(msg, kind) {
@@ -415,7 +497,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.section').forEach((s) => s.classList.remove('active'));
   $('#tab-' + name).classList.add('active');
-  if (name === 'predictions') refreshAndRerender();
+  if (name === 'predictions') refreshAndRerender(true);
   if (name === 'leaderboard') renderLeaderboard();
   if (name === 'results') renderResults();
 }
@@ -430,6 +512,15 @@ document.addEventListener('click', (e) => {
   if (t.dataset.act === 'save') return savePred(+t.dataset.m);
 });
 $('#nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') login($('#nameInput').value); });
+
+// live-sync the winner buttons to whatever score the user types
+document.addEventListener('input', (e) => {
+  const inp = e.target.closest('.score-num');
+  if (!inp) return;
+  const card = inp.closest('.match-card');
+  const id = parseInt(inp.id.split('_')[1], 10);
+  if (card && Number.isFinite(id)) syncFromScore(id, card);
+});
 
 // ── boot ────────────────────────────────────────────────────────────────────
 (async function boot() {
