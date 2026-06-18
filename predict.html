@@ -62,8 +62,11 @@
   .team .flag.tbd { display:grid; place-items:center; background:var(--card2); color:var(--muted); font-size:1.1rem; }
   .team .nm { display:block; line-height:1.25; }
   .vs { color:var(--gold); font-weight:900; font-size:0.95rem; }
-  .mid-score { font-size:1.5rem; font-weight:900; color:var(--text); letter-spacing:1px; }
+  /* inline-flex so the two scores are ordered by layout, not by RTL text bidi
+     (which reversed "4 - 2" on some engines e.g. iOS Safari). home stays on the right. */
+  .mid-score { font-size:1.5rem; font-weight:900; color:var(--text); display:inline-flex; align-items:baseline; gap:6px; }
   .mid-score b { color:var(--gold-light); }
+  .mid-score .sep { color:var(--text); font-weight:700; }
 
   .result-options { display:flex; gap:6px; margin-bottom:10px; }
   .result-btn { flex:1; background:var(--dark); border:2px solid var(--border); border-radius:10px; padding:9px 4px; color:var(--muted); font-family:inherit; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.15s; }
@@ -122,7 +125,10 @@
   .rv-team { display:flex; align-items:center; gap:6px; min-width:0; }
   .rv-team img { width:26px; height:19px; border-radius:3px; object-fit:cover; box-shadow:0 0 0 1px rgba(255,255,255,0.08); }
   .rv-team span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .rv-score { font-size:1.05rem; font-weight:900; color:var(--gold-light); letter-spacing:1px; white-space:nowrap; }
+  .rv-score { font-size:1.05rem; font-weight:900; color:var(--gold-light); display:inline-flex; align-items:baseline; gap:5px; white-space:nowrap; }
+  .rv-score .sep { color:var(--gold-light); }
+  .rv-live { font-size:0.9rem; font-weight:900; color:var(--red); white-space:nowrap; }
+  .reveal-row .pts.pend { background:var(--card2); color:var(--muted); }
   .reveal-body { padding:0 14px 10px; animation:errIn .2s ease-out; }
   .reveal-row { display:flex; align-items:center; gap:10px; padding:9px 2px; border-top:1px solid var(--line); }
   .reveal-row .nm { flex:1; font-size:0.9rem; font-weight:800; line-height:1.5; min-width:0; }
@@ -360,7 +366,7 @@ function matchCard(m) {
   const pr = MYPRED[m.id];
   const when = `${fmtDate.format(new Date(m.kickoff))} · ${fmtTime.format(new Date(m.kickoff))}`;
   let mid = `<div class="vs">VS</div>`;
-  if (m.real) mid = `<div class="mid-score"><b>${m.real.hs}</b> - <b>${m.real.as}</b></div>`;
+  if (m.real) mid = `<div class="mid-score"><b>${m.real.hs}</b><span class="sep">-</span><b>${m.real.as}</b></div>`;
 
   let body = '';
   if (!m.ready) {
@@ -551,7 +557,7 @@ function paintResults() {
     const key = sectionKey(m);
     if (key !== lastKey) { html += `<div class="group-label">⚽ ${key}</div>`; lastKey = key; }
     const when = `${fmtDate.format(new Date(m.kickoff))} · ${fmtTime.format(new Date(m.kickoff))}`;
-    const mid = m.real ? `<div class="mid-score"><b>${m.real.hs}</b> - <b>${m.real.as}</b></div>`
+    const mid = m.real ? `<div class="mid-score"><b>${m.real.hs}</b><span class="sep">-</span><b>${m.real.as}</b></div>`
       : m.status === 'live' ? '<div class="vs" style="color:var(--red)">● مباشر</div>' : '<div class="vs">VS</div>';
     html += `<div class="match-card"><div class="match-head"><span class="match-when">${when}</span>${statusChip(m)}</div>
         <div class="teams-row">${teamCell(m.home)}${mid}${teamCell(m.away)}</div></div>`;
@@ -559,8 +565,8 @@ function paintResults() {
   host.innerHTML = html;
 }
 
-// ── reveal: after each match, who predicted what — and why the points ────────
-// Only finished matches appear (predictions stay hidden until a match ends).
+// ── reveal: once a match kicks off (predictions locked) show everyone's picks;
+// after it finishes, fill in the points. Predictions stay hidden until kickoff.
 // Newest match first, latest auto-expanded; tap a match to expand/collapse.
 let REVEAL_DATA = null, revealOpen = new Set(), revealAutoOpened = false;
 async function renderReveal() {
@@ -586,7 +592,15 @@ function miniTeam(side) {
 function revealRow(m, x) {
   const pr = x.pr;
   const me = PLAYER && x.name === PLAYER.name ? ' me' : '';
-  const score = Number.isFinite(pr.home_score) && Number.isFinite(pr.away_score) ? ` ${pr.home_score}-${pr.away_score}` : '';
+  // dir=ltr keeps the predicted scoreline as home-away on every engine
+  const score = Number.isFinite(pr.home_score) && Number.isFinite(pr.away_score)
+    ? ` <span dir="ltr">${pr.home_score}-${pr.away_score}</span>` : '';
+  if (x.pts === null) { // match not finished yet — show the pick now, points after the whistle
+    return `<div class="reveal-row${me}">
+        <span class="pts pend">⏳</span>
+        <span class="nm">${x.name}${me ? ' 👈' : ''}<br><small>${pickLabel(m, pr)}${score}</small></span>
+      </div>`;
+  }
   const reason = x.pts === 3 ? 'نتيجة مطابقة' : x.pts === 1 ? 'الفائز صحيح' : 'لم يوفّق';
   return `<div class="reveal-row${me}">
       <span class="pts p${x.pts}">${x.pts === 0 ? '٠' : '+' + x.pts}</span>
@@ -594,13 +608,17 @@ function revealRow(m, x) {
     </div>`;
 }
 function revealCard(m, list) {
+  const mid = m.real
+    ? `<span class="rv-score"><b>${m.real.hs}</b><span class="sep">-</span><b>${m.real.as}</b></span>`
+    : m.status === 'live' ? '<span class="rv-live">● مباشر</span>' : '<span class="rv-live" style="color:var(--muted)">بانتظار النتيجة</span>';
   const head = `<div class="reveal-head" data-act="reveal" data-m="${m.id}">
       <span class="chev">▾</span>
-      <span class="rv-teams">${miniTeam(m.home)}<span class="rv-score"><b>${m.real.hs}</b>-<b>${m.real.as}</b></span>${miniTeam(m.away)}</span>
+      <span class="rv-teams">${miniTeam(m.home)}${mid}${miniTeam(m.away)}</span>
       <span class="rv-count">${list.length} 👤</span>
     </div>`;
   if (!revealOpen.has(m.id)) return `<div class="reveal-match">${head}</div>`;
-  const body = list.length ? list.map((x) => revealRow(m, x)).join('') : '<p class="hint">لا أحد توقّع هذه المباراة</p>';
+  const note = m.real ? '' : '<p class="hint" style="margin:2px 0 8px">التوقعات مقفلة، النقاط تظهر بعد انتهاء المباراة.</p>';
+  const body = list.length ? note + list.map((x) => revealRow(m, x)).join('') : '<p class="hint">لا أحد توقّع هذه المباراة</p>';
   return `<div class="reveal-match open">${head}<div class="reveal-body">${body}</div></div>`;
 }
 function paintReveal() {
@@ -609,18 +627,18 @@ function paintReveal() {
   const nameById = new Map(REVEAL_DATA.players.map((p) => [p.id, p.name]));
   const byMatch = new Map();
   REVEAL_DATA.preds.forEach((p) => { if (!byMatch.has(p.match_id)) byMatch.set(p.match_id, []); byMatch.get(p.match_id).push(p); });
-  const finished = MATCHES.filter((m) => m.real && m.ready).sort((a, b) => Date.parse(b.kickoff) - Date.parse(a.kickoff));
-  if (!finished.length) {
-    host.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>لا توجد مباريات منتهية بعد.<br>ستظهر توقعات الشباب هنا بعد كل مباراة.</p></div>';
+  // matches whose predictions are CLOSED (kicked off) — newest first
+  const closed = MATCHES.filter((m) => m.locked && m.ready).sort((a, b) => Date.parse(b.kickoff) - Date.parse(a.kickoff));
+  if (!closed.length) {
+    host.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>لم تبدأ أي مباراة بعد.<br>بمجرد انطلاق المباراة تظهر توقعات الجميع هنا.</p></div>';
     return;
   }
-  if (!revealAutoOpened) { revealOpen.add(finished[0].id); revealAutoOpened = true; } // open the latest match by default
-  let html = '<p class="hint" style="margin-bottom:14px;">بعد كل مباراة: اضغط عليها لترى توقّع كل لاعب والنقاط التي حصل عليها.</p>';
-  for (const m of finished) {
+  if (!revealAutoOpened) { revealOpen.add(closed[0].id); revealAutoOpened = true; } // open the latest kicked-off match by default
+  let html = '<p class="hint" style="margin-bottom:14px;">بمجرد انطلاق المباراة تظهر توقعات الجميع، وبعد انتهائها تُحتسب النقاط. اضغط أي مباراة لعرضها.</p>';
+  for (const m of closed) {
     const list = (byMatch.get(m.id) || [])
-      .map((pr) => ({ pr, name: nameById.get(pr.player_id) || '—', pts: points(pr, m.real) }))
-      .filter((x) => x.pts !== null)
-      .sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name, 'ar'));
+      .map((pr) => ({ pr, name: nameById.get(pr.player_id) || '—', pts: m.real ? points(pr, m.real) : null }))
+      .sort((a, b) => (m.real ? b.pts - a.pts : 0) || a.name.localeCompare(b.name, 'ar'));
     html += revealCard(m, list);
   }
   host.innerHTML = html;
@@ -701,6 +719,8 @@ function rerenderActive() {
     renderPredictions(false);
   } else if (active.id === 'tab-results') {
     paintResults();
+  } else if (active.id === 'tab-reveal') {
+    if (REVEAL_DATA) paintReveal(); // live-update: points appear as soon as a match finishes
   }
 }
 function scheduleFifa(delay) { clearTimeout(fifaTimer); fifaTimer = setTimeout(fifaTick, delay); }
