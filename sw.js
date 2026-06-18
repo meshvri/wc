@@ -11,9 +11,9 @@
 // would freeze live results, so it is always fetched fresh with a cached
 // last-known fallback for offline.
 
-const SHELL = 'wc-shell-v9';
+const SHELL = 'wc-shell-v10';
 const DATA = 'wc-data-v1';
-const RUNTIME = 'wc-runtime-v1';
+const RUNTIME = 'wc-runtime-v2';
 
 const SHELL_ASSETS = [
   './',
@@ -58,6 +58,11 @@ self.addEventListener('fetch', (e) => {
 
   // 0) FIFA live API — always go to network (never cache live match data)
   if (url.host === 'api.fifa.com') return;
+
+  // 0b) Supabase (predictions / players / auth) — always network, never cache.
+  // Caching these reads served stale predictions (a save vanished until a later
+  // refresh repopulated the cache). Writes already bypass via the GET check above.
+  if (url.hostname.endsWith('.supabase.co')) return;
 
   // 1) tournament data — NETWORK-FIRST (results must never be stale-cached)
   if (url.pathname.endsWith('/data/tournament.json')) {
