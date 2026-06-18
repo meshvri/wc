@@ -70,6 +70,20 @@
   .result-btn.sel-win { background:#0d3320; border-color:var(--win); color:var(--win); }
   .result-btn.sel-draw { background:#2e2200; border-color:var(--draw); color:var(--draw); }
   .result-btn.sel-lose { background:#2e0d0d; border-color:var(--lose); color:var(--lose); }
+  /* empty-field validation cues - inline, themed, RTL */
+  .result-btn.suggested { animation:suggestPulse 1.3s ease-in-out infinite; }
+  .score-num.invalid { border-color:var(--red) !important; box-shadow:0 0 0 2px rgba(224,85,85,0.30); animation:fieldShake 0.4s; }
+  .card-error { display:none; align-items:center; gap:7px; margin-top:10px; padding:9px 11px; border-radius:9px;
+    background:rgba(224,85,85,0.12); border:1px solid rgba(224,85,85,0.40); color:#f4a6a6; font-size:0.8rem; font-weight:700; line-height:1.55; }
+  .card-error.show { display:flex; animation:errIn 0.25s ease-out; }
+  @keyframes fieldShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+  @keyframes suggestPulse { 0%,100%{box-shadow:0 0 0 0 rgba(201,162,39,0)} 50%{box-shadow:0 0 0 3px rgba(201,162,39,0.45)} }
+  @keyframes errIn { from{opacity:0; transform:translateY(-3px)} to{opacity:1; transform:translateY(0)} }
+  @media (prefers-reduced-motion: reduce) {
+    .score-num.invalid{animation:none}
+    .card-error.show{animation:none}
+    .result-btn.suggested{animation:none; box-shadow:0 0 0 2px rgba(201,162,39,0.55)}
+  }
 
   .score-row { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:12px; }
   .score-num { width:52px; background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:9px 4px; color:var(--text); font-family:inherit; font-size:1.2rem; font-weight:800; text-align:center; outline:none; }
@@ -147,7 +161,7 @@
 
 <script type="module">
 import { resolve, displayStatus, hasScore } from './assets/engine.js';
-import { scoreOutcome, reconcilePrediction, nearestMatchIndex } from './assets/predict-logic.js';
+import { scoreOutcome, nearestMatchIndex } from './assets/predict-logic.js';
 
 const SUPABASE_URL = 'https://ioradtnlrxbffkfgkyls.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_AGBc0x8K5z9ZMr-I5MzoBA_ERrYu_IV';
@@ -319,7 +333,7 @@ function matchCard(m) {
     // read-only + verdict
     if (pr) {
       const pv = m.real ? points(pr, m.real) : null;
-      const myLine = `توقّعك: ${pickLabel(m, pr)}${Number.isFinite(pr.home_score) ? ` (${pr.home_score}-${pr.away_score})` : ''}`;
+      const myLine = `توقّعك: ${pickLabel(m, pr)}${Number.isFinite(pr.home_score) && Number.isFinite(pr.away_score) ? ` (${pr.home_score}-${pr.away_score})` : ''}`;
       const badge = pv === null ? '<span class="pts" style="background:var(--card);color:var(--muted)">بانتظار النتيجة</span>'
         : `<span class="pts p${pv}">${pv === 0 ? '٠' : '+' + pv}</span>`;
       body = `<div class="verdict"><span class="mine">${myLine}</span>${badge}</div>`;
@@ -338,12 +352,13 @@ function matchCard(m) {
       </div>
       <div class="score-row">
         <span class="score-label">${m.home.name}</span>
-        <input class="score-num" type="number" inputmode="numeric" min="0" max="20" value="${hs}" placeholder="0" id="hs_${m.id}">
+        <input class="score-num" type="number" inputmode="numeric" min="0" max="20" value="${hs}" placeholder="-" id="hs_${m.id}">
         <span class="score-sep">:</span>
-        <input class="score-num" type="number" inputmode="numeric" min="0" max="20" value="${as}" placeholder="0" id="as_${m.id}">
+        <input class="score-num" type="number" inputmode="numeric" min="0" max="20" value="${as}" placeholder="-" id="as_${m.id}">
         <span class="score-label">${m.away.name}</span>
       </div>
-      <button class="save-btn" data-act="save" data-m="${m.id}">💾 حفظ التوقع</button>`;
+      <button class="save-btn" data-act="save" data-m="${m.id}">💾 حفظ التوقع</button>
+      <div class="card-error" id="err_${m.id}"></div>`;
   }
 
   return `<div class="match-card ${m.locked ? 'locked' : ''}" id="m_${m.id}">
@@ -365,60 +380,81 @@ function cardScore(card) {
     as: parseInt(card.querySelector('input[id^="as_"]')?.value, 10),
   };
 }
-// highlight the winner button matching result code r ('h' | 'd' | 'a')
+// highlight the winner button matching result code r ('h' | 'd' | 'a'); null clears all
 function highlightResult(card, r) {
   card.querySelectorAll('.result-btn').forEach((b) => { b.className = 'result-btn'; });
-  const btn = card.querySelector(`.result-btn[data-r="${r}"]`);
+  const btn = r ? card.querySelector(`.result-btn[data-r="${r}"]`) : null;
   if (btn) btn.className = `result-btn ${r === 'h' ? 'sel-win' : r === 'd' ? 'sel-draw' : 'sel-lose'}`;
 }
+// gently pulse the winner button matching the typed score, as a "اضغط هنا" hint
+function hintWinner(card, r) {
+  card.querySelectorAll('.result-btn').forEach((b) => b.classList.remove('suggested'));
+  if (r) { const btn = card.querySelector(`.result-btn[data-r="${r}"]`); if (btn) btn.classList.add('suggested'); }
+}
 
-// pick a winner (in-memory until save). The written score is authoritative:
-// a pick that contradicts a complete scoreline is refused with an Arabic note,
-// and the score-consistent winner is kept highlighted instead.
+// inline, field-level Arabic error: mark the empty field(s) and show the note
+function showCardError(card, miss) {
+  const home = card.querySelector('input[id^="hs_"]');
+  const away = card.querySelector('input[id^="as_"]');
+  if (home) home.classList.toggle('invalid', !!miss.home);
+  if (away) away.classList.toggle('invalid', !!miss.away);
+  if (miss.winner) { const { hs, as } = cardScore(card); hintWinner(card, scoreOutcome(hs, as)); }
+  const noScore = miss.home || miss.away;
+  const msg = noScore && miss.winner ? 'هناك حقل فارغ، أكمل النتيجة ثم اختر الفائز'
+    : noScore ? 'هناك حقل فارغ، أدخل نتيجة الفريقين'
+    : 'لم تختر الفائز، اضغط على فوز فريق أو تعادل';
+  const box = card.querySelector('.card-error');
+  if (box) { box.textContent = '⚠️ ' + msg; box.classList.remove('show'); void box.offsetWidth; box.classList.add('show'); }
+}
+function clearCardError(card) {
+  card.querySelectorAll('.invalid').forEach((el) => el.classList.remove('invalid'));
+  const box = card.querySelector('.card-error'); if (box) box.classList.remove('show');
+}
+
+// pick a winner (in-memory until save). The written score stays authoritative:
+// tapping a winner that disagrees with a complete score is refused in Arabic and
+// the score-consistent winner is selected instead.
 function pick(matchId, r, btn) {
   const card = btn.closest('.match-card');
   const { hs, as } = cardScore(card);
   const fromScore = scoreOutcome(hs, as);
-  if (fromScore && fromScore !== r) {
-    toast('الفائز لا يطابق النتيجة المكتوبة', 'err');
-    highlightResult(card, fromScore);
-    MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: fromScore };
-    return;
-  }
+  if (fromScore && fromScore !== r) { toast('الفائز لا يطابق النتيجة المكتوبة', 'err'); r = fromScore; }
   highlightResult(card, r);
+  hintWinner(card, null);
   MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: r };
+  if (Number.isFinite(hs) && Number.isFinite(as)) clearCardError(card);
 }
 
-// keep the winner buttons in step as the user types a score, so the card can
-// never show a winner that disagrees with the scoreline
+// as the user types a score: hint the matching winner (an explicit tap is still
+// required), and drop a now-contradicting pick so the card never lies
 function syncFromScore(matchId, card) {
   const { hs, as } = cardScore(card);
   const fromScore = scoreOutcome(hs, as);
-  if (fromScore) {
-    highlightResult(card, fromScore);
-    MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: fromScore };
-  }
+  hintWinner(card, fromScore);
+  const cur = (MYPRED[matchId] || {}).result;
+  if (fromScore && cur && cur !== fromScore) { highlightResult(card, null); MYPRED[matchId] = { ...(MYPRED[matchId] || {}), result: null }; }
+  clearCardError(card);
 }
 
 async function savePred(matchId) {
   const m = MATCHES.find((x) => x.id === matchId);
   if (!m || m.locked) { toast('انتهى وقت التوقّع لهذه المباراة', 'err'); refreshAndRerender(); return; }
+  const card = document.getElementById('m_' + matchId);
   const hsv = parseInt($('#hs_' + matchId).value, 10);
   const asv = parseInt($('#as_' + matchId).value, 10);
-  // score is the source of truth; reconcile against any winner pick
-  const rec = reconcilePrediction({ pick: (MYPRED[matchId] || {}).result, hs: hsv, as: asv });
-  if (!rec.ok) { toast(rec.message, 'err'); return; }
-  const row = {
-    player_id: PLAYER.id, match_id: matchId, result: rec.result,
-    home_score: Number.isFinite(hsv) ? hsv : null,
-    away_score: Number.isFinite(asv) ? asv : null,
-  };
+  const winner = (MYPRED[matchId] || {}).result;
+  // require BOTH scores AND a chosen winner; otherwise flag the empty field(s)
+  const miss = { home: !Number.isFinite(hsv), away: !Number.isFinite(asv), winner: !(winner === 'h' || winner === 'a' || winner === 'd') };
+  if (miss.home || miss.away || miss.winner) { showCardError(card, miss); return; }
+  clearCardError(card);
+  const result = scoreOutcome(hsv, asv); // both present -> defined; the score is the source of truth
+  const row = { player_id: PLAYER.id, match_id: matchId, result, home_score: hsv, away_score: asv };
   try {
     const { error } = await sb.from('predictions').upsert(row, { onConflict: 'player_id,match_id' });
     if (error) { toast('خطأ في الحفظ', 'err'); return; }
   } catch (e) { toast('تعذّر حفظ التوقع، حاول مجدداً', 'err'); return; }
   MYPRED[matchId] = row;
-  toast(rec.conflict ? '✅ حُفظ حسب النتيجة المكتوبة' : '✅ تم حفظ التوقع');
+  toast('✅ تم حفظ التوقع');
 }
 
 // ── render: leaderboard (auto-scored from live results) ──────────────────────

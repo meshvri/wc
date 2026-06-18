@@ -11,7 +11,7 @@
 // would freeze live results, so it is always fetched fresh with a cached
 // last-known fallback for offline.
 
-const SHELL = 'wc-shell-v8';
+const SHELL = 'wc-shell-v9';
 const DATA = 'wc-data-v1';
 const RUNTIME = 'wc-runtime-v1';
 
@@ -25,6 +25,7 @@ const SHELL_ASSETS = [
   './assets/app.js',
   './assets/match.js',
   './assets/engine.js',
+  './assets/predict-logic.js',
   './manifest.json',
   './assets/icon-192.png',
   './assets/icon-512.png',
