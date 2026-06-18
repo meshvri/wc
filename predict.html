@@ -160,7 +160,7 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { resolve, displayStatus, hasScore } from './assets/engine.js';
+import { resolve, displayStatus, hasScore, buildLiveOverlay } from './assets/engine.js';
 import { scoreOutcome, nearestMatchIndex } from './assets/predict-logic.js';
 
 const SUPABASE_URL = 'https://ioradtnlrxbffkfgkyls.supabase.co';
@@ -190,7 +190,7 @@ const fmtTime = new Intl.DateTimeFormat('ar', { timeZone:'Asia/Riyadh', hour:'nu
 const flagURL = (c) => `https://flagcdn.com/${c}.svg`;
 const $ = (s, r = document) => r.querySelector(s);
 
-let DATA = null, RES = null, MATCHES = [], PLAYER = null, MYPRED = {};
+let DATA = null, RES = null, MATCHES = [], PLAYER = null, MYPRED = {}, LIVE_OV = new Map();
 
 // ── scoring — the single source of truth ────────────────────────────────────
 // 3 = exact scoreline, 1 = correct outcome only, 0 = wrong. Only scoreable
@@ -210,20 +210,32 @@ async function loadTournament() {
   const res = await fetch('data/tournament.json', { cache: 'no-store' });
   DATA = await res.json();
   RES = resolve(DATA, Date.now());
+  buildMatches();
+}
+// Build the render model from committed data, then apply the live FIFA overlay
+// (render-time only) so a just-finished match shows its final score/status
+// within ~45s — independent of the slower, sometimes-skipped GitHub cron commit.
+function buildMatches() {
+  if (!DATA || !RES) return;
   const sideOf = (s) => (s.placeholder ? { placeholder: s.placeholder, code: null } : { code: s.code, name: AR[s.code] || s.name });
   MATCHES = DATA.matches.slice()
     .sort((a, b) => Date.parse(a.kickoff_utc) - Date.parse(b.kickoff_utc))
     .map((m) => {
       const r = RES.resolved.get(m.id);
-      const st = displayStatus(m, Date.now());
-      const scoreable = st !== 'live' && hasScore(m);
+      let st = displayStatus(m, Date.now());
+      let real = (st !== 'live' && hasScore(m)) ? { hs: m.home_score, as: m.away_score } : null;
+      const ov = LIVE_OV.get(m.id); // FIFA overlay: { home, away, min, status }
+      if (ov) {
+        st = ov.status; // 'live' | 'finished'
+        real = ov.status === 'finished' ? { hs: ov.home, as: ov.away } : null;
+      }
       return {
         id: m.id, stage: m.stage, group: m.group, kickoff: m.kickoff_utc,
         home: sideOf(r.home), away: sideOf(r.away),
         ready: !r.home.placeholder && !r.away.placeholder,
         status: st,
         locked: Date.now() >= Date.parse(m.kickoff_utc),
-        real: scoreable ? { hs: m.home_score, as: m.away_score } : null,
+        real,
       };
     });
 }
@@ -505,6 +517,10 @@ async function renderResults() {
   const host = $('#tab-results');
   host.innerHTML = '<div class="loading">⏳ جاري التحميل...</div>';
   await loadTournament();
+  paintResults();
+}
+function paintResults() {
+  const host = $('#tab-results');
   let html = '<p class="hint" style="margin-bottom:14px;">النتائج تُجلب تلقائياً من المصدر الرسمي.</p>';
   let lastKey = null;
   for (const m of MATCHES) {
@@ -558,12 +574,76 @@ document.addEventListener('input', (e) => {
   if (card && Number.isFinite(id)) syncFromScore(id, card);
 });
 
+// ── live results overlay (key-free FIFA poll, render-time only) ──────────────
+// The committed schedule only updates when the GitHub cron runs, which can be
+// delayed or skipped entirely — so a final can show late. We also poll FIFA
+// directly here and overlay just-finished results onto MATCHES, so finals appear
+// within ~45s regardless of the cron. It NEVER writes to the DB or committed
+// data; if FIFA is unreachable it backs off and falls back to committed data.
+const FIFA_LIVE_URL = 'https://api.fifa.com/api/v3/calendar/matches?idCompetition=17&idSeason=285023&count=500&language=en';
+const FIFA_BASE_MS = 45000;
+let fifaTimer = null, fifaBackoff = 0;
+function shouldPoll() {
+  if (LIVE_OV.size) return true;
+  const now = Date.now();
+  return MATCHES.some((m) => {
+    if (m.status === 'live') return true; // committed says live -> may be stuck-live; keep polling so we can flip it to finished
+    const ko = Date.parse(m.kickoff);
+    return now >= ko - 9e5 && now < ko + 1.8e7; // -15min .. +5h after kickoff (covers late finals when the cron lags)
+  });
+}
+function overlayEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const [k, v] of a) { const w = b.get(k); if (!w || w.home !== v.home || w.away !== v.away || w.status !== v.status) return false; }
+  return true;
+}
+function rerenderActive() {
+  if ($('#mainApp').style.display !== 'block') return;
+  const active = document.querySelector('.section.active');
+  if (!active) return;
+  if (active.id === 'tab-predictions') {
+    const el = document.activeElement; // don't clobber a score the user is typing
+    if (el && el.classList && el.classList.contains('score-num')) return;
+    renderPredictions(false);
+  } else if (active.id === 'tab-results') {
+    paintResults();
+  }
+}
+function scheduleFifa(delay) { clearTimeout(fifaTimer); fifaTimer = setTimeout(fifaTick, delay); }
+async function fifaTick() {
+  if (document.visibilityState !== 'visible' || $('#mainApp').style.display !== 'block') { scheduleFifa(5000); return; } // not ready (hidden/pre-login) — re-check soon
+  if (!shouldPoll() && LIVE_OV.size === 0) { scheduleFifa(FIFA_BASE_MS); return; } // logged in but nothing live/near
+  try {
+    const res = await fetch(FIFA_LIVE_URL, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    if (!res.ok) throw new Error('http ' + res.status);
+    const json = await res.json();
+    const rows = json.Results || [];
+    if (rows.length < 64) throw new Error('unexpected shape');
+    if (!DATA) { scheduleFifa(FIFA_BASE_MS); return; }
+    const committed = new Map(DATA.matches.map((m) => [m.id, m]));
+    const ids = new Set(DATA.matches.map((m) => m.id));
+    const next = buildLiveOverlay(rows, committed, ids);
+    fifaBackoff = 0;
+    if (!overlayEqual(LIVE_OV, next)) { LIVE_OV = next; buildMatches(); rerenderActive(); }
+    scheduleFifa(FIFA_BASE_MS);
+  } catch (e) {
+    fifaBackoff = Math.min(5, fifaBackoff + 1);
+    if (fifaBackoff >= 3 && LIVE_OV.size) { LIVE_OV = new Map(); buildMatches(); rerenderActive(); } // give up; fall back to committed
+    scheduleFifa(FIFA_BASE_MS * (1 + fifaBackoff));
+  }
+}
+function setupFifaLive() {
+  scheduleFifa(2500);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleFifa(1200); });
+}
+
 // ── boot ────────────────────────────────────────────────────────────────────
 (async function boot() {
   try { await loadTournament(); }
   catch (e) { toast('تعذّر تحميل الجدول', 'err'); }
   const saved = localStorage.getItem('wcp_name');
   if (saved) login(saved); // stay logged in across the tournament
+  setupFifaLive();
 })();
 </script>
 </body>
