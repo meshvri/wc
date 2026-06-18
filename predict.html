@@ -27,7 +27,7 @@
   .header .sched { position:absolute; right:14px; top:calc(env(safe-area-inset-top) + 18px); border:1px solid var(--gold); color:var(--gold-light); border-radius:18px; padding:5px 12px; font-size:0.72rem; font-weight:700; text-decoration:none; }
 
   .tabs { display:flex; background:var(--card); border-bottom:1px solid var(--line); }
-  .tab { flex:1; padding:13px 6px; text-align:center; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--muted); border-bottom:3px solid transparent; transition:all 0.2s; font-family:inherit; background:none; }
+  .tab { flex:1; padding:13px 4px; text-align:center; cursor:pointer; font-size:0.8rem; font-weight:700; color:var(--muted); border-bottom:3px solid transparent; transition:all 0.2s; font-family:inherit; background:none; }
   .tab.active { color:var(--gold-light); border-bottom-color:var(--gold); background:var(--card2); }
 
   .section { display:none; padding:16px; max-width:680px; margin:0 auto; }
@@ -111,6 +111,28 @@
   .lb-pts { font-size:1.3rem; font-weight:900; color:var(--gold-light); }
   .lb-pts span { font-size:0.72rem; color:var(--muted); font-weight:400; }
 
+  /* reveal: per-match prediction breakdown (tap a finished match to expand) */
+  .reveal-match { background:var(--card); border-radius:14px; margin-bottom:12px; border:1px solid var(--line); overflow:hidden; }
+  .reveal-match.open { border-color:var(--border); }
+  .reveal-head { display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; }
+  .reveal-head .chev { color:var(--muted); transition:transform .2s; font-size:0.85rem; }
+  .reveal-match.open .chev { transform:rotate(180deg); }
+  .rv-count { font-size:0.72rem; color:var(--muted); white-space:nowrap; }
+  .rv-teams { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; font-size:0.82rem; font-weight:700; min-width:0; }
+  .rv-team { display:flex; align-items:center; gap:6px; min-width:0; }
+  .rv-team img { width:26px; height:19px; border-radius:3px; object-fit:cover; box-shadow:0 0 0 1px rgba(255,255,255,0.08); }
+  .rv-team span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rv-score { font-size:1.05rem; font-weight:900; color:var(--gold-light); letter-spacing:1px; white-space:nowrap; }
+  .reveal-body { padding:0 14px 10px; animation:errIn .2s ease-out; }
+  .reveal-row { display:flex; align-items:center; gap:10px; padding:9px 2px; border-top:1px solid var(--line); }
+  .reveal-row .nm { flex:1; font-size:0.9rem; font-weight:800; line-height:1.5; min-width:0; }
+  .reveal-row .nm small { display:block; color:var(--muted); font-weight:600; font-size:0.74rem; }
+  .reveal-row.me { background:rgba(37,160,90,0.10); border-radius:8px; }
+  .reveal-row .pts { font-size:0.9rem; font-weight:900; padding:3px 10px; border-radius:20px; min-width:36px; text-align:center; }
+  .reveal-row .pts.p3 { background:#0d3320; color:var(--win); }
+  .reveal-row .pts.p1 { background:#2e2200; color:var(--draw); }
+  .reveal-row .pts.p0 { background:#2e0d0d; color:var(--lose); }
+
   .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--green); color:#fff; padding:12px 24px; border-radius:24px; font-weight:800; font-size:0.92rem; z-index:999; opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
   .toast.show { opacity:1; }
   .loading,.empty { text-align:center; padding:36px 20px; color:var(--muted); }
@@ -150,11 +172,13 @@
       <button class="tab active" data-tab="predictions">⚽ توقعاتي</button>
       <button class="tab" data-tab="leaderboard">🏅 الترتيب</button>
       <button class="tab" data-tab="results">📋 النتائج</button>
+      <button class="tab" data-tab="reveal">👀 توقعاتهم</button>
     </div>
   </div>
   <div id="tab-predictions" class="section active"></div>
   <div id="tab-leaderboard" class="section"></div>
   <div id="tab-results" class="section"></div>
+  <div id="tab-reveal" class="section"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -535,6 +559,74 @@ function paintResults() {
   host.innerHTML = html;
 }
 
+// ── reveal: after each match, who predicted what — and why the points ────────
+// Only finished matches appear (predictions stay hidden until a match ends).
+// Newest match first, latest auto-expanded; tap a match to expand/collapse.
+let REVEAL_DATA = null, revealOpen = new Set(), revealAutoOpened = false;
+async function renderReveal() {
+  const host = $('#tab-reveal');
+  host.innerHTML = '<div class="loading">⏳ جاري التحميل...</div>';
+  try {
+    await loadTournament(); // fresh results (+ live overlay)
+    const [pRes, prRes] = await Promise.all([
+      sb.from('players').select('*').limit(5000),
+      sb.from('predictions').select('*').limit(5000), // fetch all so older matches are never truncated by a default row cap
+    ]);
+    REVEAL_DATA = { players: pRes.data || [], preds: prRes.data || [] };
+  } catch (e) {
+    host.innerHTML = '<div class="empty"><div class="icon">⚠️</div><p>تعذّر تحميل التوقعات، حاول مجدداً</p></div>';
+    return;
+  }
+  paintReveal();
+}
+function miniTeam(side) {
+  const flag = side.code ? `<img src="${flagURL(side.code)}" alt="" width="26" height="19">` : '';
+  return `<span class="rv-team">${flag}<span>${side.code ? side.name : '?'}</span></span>`;
+}
+function revealRow(m, x) {
+  const pr = x.pr;
+  const me = PLAYER && x.name === PLAYER.name ? ' me' : '';
+  const score = Number.isFinite(pr.home_score) && Number.isFinite(pr.away_score) ? ` ${pr.home_score}-${pr.away_score}` : '';
+  const reason = x.pts === 3 ? 'نتيجة مطابقة' : x.pts === 1 ? 'الفائز صحيح' : 'لم يوفّق';
+  return `<div class="reveal-row${me}">
+      <span class="pts p${x.pts}">${x.pts === 0 ? '٠' : '+' + x.pts}</span>
+      <span class="nm">${x.name}${me ? ' 👈' : ''}<br><small>${pickLabel(m, pr)}${score} · ${reason}</small></span>
+    </div>`;
+}
+function revealCard(m, list) {
+  const head = `<div class="reveal-head" data-act="reveal" data-m="${m.id}">
+      <span class="chev">▾</span>
+      <span class="rv-teams">${miniTeam(m.home)}<span class="rv-score"><b>${m.real.hs}</b>-<b>${m.real.as}</b></span>${miniTeam(m.away)}</span>
+      <span class="rv-count">${list.length} 👤</span>
+    </div>`;
+  if (!revealOpen.has(m.id)) return `<div class="reveal-match">${head}</div>`;
+  const body = list.length ? list.map((x) => revealRow(m, x)).join('') : '<p class="hint">لا أحد توقّع هذه المباراة</p>';
+  return `<div class="reveal-match open">${head}<div class="reveal-body">${body}</div></div>`;
+}
+function paintReveal() {
+  const host = $('#tab-reveal');
+  if (!REVEAL_DATA) return;
+  const nameById = new Map(REVEAL_DATA.players.map((p) => [p.id, p.name]));
+  const byMatch = new Map();
+  REVEAL_DATA.preds.forEach((p) => { if (!byMatch.has(p.match_id)) byMatch.set(p.match_id, []); byMatch.get(p.match_id).push(p); });
+  const finished = MATCHES.filter((m) => m.real && m.ready).sort((a, b) => Date.parse(b.kickoff) - Date.parse(a.kickoff));
+  if (!finished.length) {
+    host.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>لا توجد مباريات منتهية بعد.<br>ستظهر توقعات الشباب هنا بعد كل مباراة.</p></div>';
+    return;
+  }
+  if (!revealAutoOpened) { revealOpen.add(finished[0].id); revealAutoOpened = true; } // open the latest match by default
+  let html = '<p class="hint" style="margin-bottom:14px;">بعد كل مباراة: اضغط عليها لترى توقّع كل لاعب والنقاط التي حصل عليها.</p>';
+  for (const m of finished) {
+    const list = (byMatch.get(m.id) || [])
+      .map((pr) => ({ pr, name: nameById.get(pr.player_id) || '—', pts: points(pr, m.real) }))
+      .filter((x) => x.pts !== null)
+      .sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name, 'ar'));
+    html += revealCard(m, list);
+  }
+  host.innerHTML = html;
+}
+function toggleReveal(id) { if (revealOpen.has(id)) revealOpen.delete(id); else revealOpen.add(id); paintReveal(); }
+
 async function refreshAndRerender(focus = false) { await loadTournament(); await loadMyPred(); renderPredictions(focus); }
 
 // ── events ──────────────────────────────────────────────────────────────────
@@ -552,6 +644,7 @@ function switchTab(name) {
   if (name === 'predictions') refreshAndRerender(true);
   if (name === 'leaderboard') renderLeaderboard();
   if (name === 'results') renderResults();
+  if (name === 'reveal') renderReveal();
 }
 
 document.addEventListener('click', (e) => {
@@ -562,6 +655,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset.tab) return switchTab(t.dataset.tab);
   if (t.dataset.act === 'pick') return pick(+t.dataset.m, t.dataset.r, t);
   if (t.dataset.act === 'save') return savePred(+t.dataset.m);
+  if (t.dataset.act === 'reveal') return toggleReveal(+t.dataset.m);
 });
 $('#nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') login($('#nameInput').value); });
 
