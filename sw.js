@@ -11,7 +11,7 @@
 // would freeze live results, so it is always fetched fresh with a cached
 // last-known fallback for offline.
 
-const SHELL = 'wc-shell-v10';
+const SHELL = 'wc-shell-v11';
 const DATA = 'wc-data-v1';
 const RUNTIME = 'wc-runtime-v2';
 
@@ -80,22 +80,36 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // 2) same-origin shell — cache-first, fall back to network, then app shell
+  // 2) same-origin
   if (url.origin === location.origin) {
+    // 2a) HTML navigations — NETWORK-FIRST so page/code changes reach users on the
+    // next load without needing a service-worker version bump; fall back to the
+    // cached page (then the app shell) when offline.
+    if (req.mode === 'navigate') {
+      e.respondWith((async () => {
+        try {
+          const fresh = await fetch(req);
+          if (fresh && fresh.status === 200 && fresh.type === 'basic') {
+            const c = await caches.open(SHELL);
+            c.put(req, fresh.clone());
+          }
+          return fresh;
+        } catch (err) {
+          return (await caches.match(req)) || (await caches.match('./index.html'));
+        }
+      })());
+      return;
+    }
+    // 2b) other same-origin assets (css/js/icons) — cache-first (instant + offline)
     e.respondWith((async () => {
       const cached = await caches.match(req);
       if (cached) return cached;
-      try {
-        const fresh = await fetch(req);
-        if (fresh && fresh.status === 200 && fresh.type === 'basic') {
-          const c = await caches.open(SHELL);
-          c.put(req, fresh.clone());
-        }
-        return fresh;
-      } catch (err) {
-        if (req.mode === 'navigate') return caches.match('./index.html');
-        throw err;
+      const fresh = await fetch(req);
+      if (fresh && fresh.status === 200 && fresh.type === 'basic') {
+        const c = await caches.open(SHELL);
+        c.put(req, fresh.clone());
       }
+      return fresh;
     })());
     return;
   }
