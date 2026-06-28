@@ -6,7 +6,7 @@
 //
 // Run: node scripts/test-knockout.mjs   (exit 0 = all pass)
 import { readFileSync } from 'node:fs';
-import { resolve, displayStatus, resultLabel, buildLiveOverlay } from '../assets/engine.js';
+import { resolve, displayStatus, resultLabel, buildLiveOverlay, computeStandings, computeThirds } from '../assets/engine.js';
 import { fifaMatchToEvent } from './update-data.mjs';
 
 let failures = 0;
@@ -123,6 +123,34 @@ console.log('Case F — live overlay (the laggy-score fix):');
     'live -> live overlay with score + minute');
   ok(!ov.has(4), 'upcoming -> no overlay');
   ok(!ov.has(99), 'unknown id -> ignored');
+}
+
+console.log('Case G — third-place slots follow FIFA official table (not just any valid matching):');
+{
+  // Uses the REAL committed group results (final). The qualifying combination is
+  // {B,D,E,F,I,J,K,L}; FIFA's published table fixes which group fills each R32
+  // "3rd Group .." slot. A generic bipartite solver picks a valid-but-wrong
+  // permutation — this case is the regression guard for that bug.
+  // Expected: R32 match id -> group whose 3rd-placed team must fill the 3rd slot.
+  // Verified against api.fifa.com and press (Paraguay→Germany, Sweden→France, …).
+  const EXPECT = { 74: 'D', 77: 'F', 79: 'E', 80: 'K', 81: 'B', 82: 'I', 85: 'J', 87: 'L' };
+
+  const data = JSON.parse(readFileSync(new URL('../data/tournament.json', import.meta.url), 'utf8'));
+  const standings = computeStandings(data);
+  const thirds = computeThirds(standings);
+  const combo = thirds.qualifiedGroups ? [...thirds.qualifiedGroups].sort().join('') : '(incomplete)';
+  ok(combo === 'BDEFIJKL', `qualifying 3rd-place combination is BDEFIJKL (got ${combo})`);
+
+  const r = resolve(data, now);
+  for (const [id, grp] of Object.entries(EXPECT)) {
+    const slot = r.resolved.get(+id);
+    // the "3rd Group .." side is whichever side carries that feed
+    const m = byId(data, +id);
+    const side = /^3rd Group/.test(m.home_feed) ? slot.home : slot.away;
+    const expectCode = standings[grp].table[2].team.code;
+    ok(side && side.code === expectCode,
+      `M${id} 3rd-slot -> Group ${grp} third place (${expectCode})${side ? '' : ' [unresolved]'}`);
+  }
 }
 
 console.log(failures === 0 ? '\nALL PASS ✅' : `\n${failures} FAILURE(S) ❌`);

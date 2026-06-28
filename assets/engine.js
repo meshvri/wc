@@ -209,17 +209,57 @@ export function groupContext(standings, thirds) {
   return out;
 }
 
-// Assign qualifying third-placed groups to the eight R32 "3rd Group X/Y/.."
-// slots. Each slot lists the 5 groups it can host; FIFA publishes a lookup
-// table keyed on which 8 groups qualify. We instead solve the equivalent
-// constraint directly: a perfect bipartite matching of qualified groups to
-// slots, where a slot may only take a group from its candidate set. This
-// yields a VALID assignment consistent with FIFA's per-slot constraints.
-function assignThirds(slots, qualifiedGroups) {
-  const groups = [...qualifiedGroups];
-  const matchToGroup = {}; // slotIndex -> group letter
-  const groupUsed = {};
+// FIFA's OFFICIAL third-place combination table. For each set of 8 qualifying
+// groups (495 possible), FIFA fixes exactly which third-placed group fills each
+// R32 "3rd Group X/Y/.." slot — chosen to avoid group-stage rematches. This is
+// NOT derivable from the per-slot candidate constraints alone: when several
+// groups can legally fill several slots, multiple VALID matchings exist but only
+// ONE matches FIFA's published table. (That divergence was the bug — a generic
+// bipartite solver picked an arbitrary valid permutation.)
+//
+// Keyed by the sorted 8 qualifying-group letters; value maps each slot's sorted
+// candidate-set signature to the group FIFA assigns there. Add a row when a new
+// combination becomes real; unknown combinations fall back to the solver below.
+const THIRD_PLACE_TABLE = {
+  // 2026 actual: thirds from B,D,E,F,I,J,K,L (verified vs api.fifa.com + press).
+  BDEFIJKL: {
+    ABCDF: 'D', // M74 Winner E vs 3rd → Paraguay
+    CDFGH: 'F', // M77 Winner I vs 3rd → Sweden
+    CEFHI: 'E', // M79 Winner A vs 3rd → Ecuador
+    EHIJK: 'K', // M80 Winner L vs 3rd → DR Congo
+    BEFIJ: 'B', // M81 Winner D vs 3rd → Bosnia & Herzegovina
+    AEHIJ: 'I', // M82 Winner G vs 3rd → Senegal
+    EFGIJ: 'J', // M85 Winner B vs 3rd → Algeria
+    DEIJL: 'L', // M87 Winner K vs 3rd → Ghana
+  },
+};
 
+// Assign qualifying third-placed groups to the eight R32 "3rd Group X/Y/.."
+// slots. Prefer FIFA's official table (above); fall back to a perfect bipartite
+// matching for combinations not yet tabulated, where a slot may only take a
+// group from its candidate set — a VALID (if not necessarily FIFA-canonical)
+// assignment so the bracket still renders.
+function assignThirds(slots, qualifiedGroups) {
+  const matchToGroup = {}; // slotIndex -> group letter
+
+  // 1) official table, keyed by sorted qualifying groups + per-slot candidates
+  const key = [...qualifiedGroups].sort().join('');
+  const row = THIRD_PLACE_TABLE[key];
+  if (row) {
+    let complete = true;
+    slots.forEach((slot, i) => {
+      const sig = [...slot.candidates].sort().join('');
+      const g = row[sig];
+      if (g && qualifiedGroups.has(g)) matchToGroup[i] = g;
+      else complete = false;
+    });
+    if (complete && Object.keys(matchToGroup).length === slots.length) return matchToGroup;
+    // table row was incomplete/mismatched — discard and use the solver
+    for (const k of Object.keys(matchToGroup)) delete matchToGroup[k];
+  }
+
+  // 2) fallback: perfect bipartite matching of qualified groups to slots
+  const groupUsed = {};
   const tryAssign = (slotIdx, seen) => {
     for (const g of slots[slotIdx].candidates) {
       if (!qualifiedGroups.has(g) || seen.has(g)) continue;
