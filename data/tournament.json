@@ -7,7 +7,7 @@
     "display_tz": "Asia/Riyadh",
     "display_tz_label": "Riyadh",
     "total_matches": 104,
-    "updated_utc": "2026-06-30T03:29:21.035Z",
+    "updated_utc": "2026-06-30T04:13:48.073Z",
     "source": "api.fifa.com"
   },
   "groups": {
@@ -2018,9 +2018,13 @@
       "away_feed": "Runner-up Group C",
       "home_score": 1,
       "away_score": 1,
-      "status": "live",
+      "status": "finished",
       "fifa_id": "400021522",
-      "fifa_stage": "289287"
+      "fifa_stage": "289287",
+      "winner": "away",
+      "home_pens": 2,
+      "away_pens": 3,
+      "duration": "PENALTY_SHOOTOUT"
     },
     {
       "id": 76,
