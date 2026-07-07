@@ -7,7 +7,7 @@
     "display_tz": "Asia/Riyadh",
     "display_tz_label": "Riyadh",
     "total_matches": 104,
-    "updated_utc": "2026-07-07T21:54:34.012Z",
+    "updated_utc": "2026-07-07T22:59:19.494Z",
     "source": "api.fifa.com"
   },
   "groups": {
@@ -2383,9 +2383,13 @@
       "away_feed": "Winner Match 87",
       "home_score": 0,
       "away_score": 0,
-      "status": "live",
+      "status": "finished",
       "fifa_id": "400021535",
-      "fifa_stage": "289288"
+      "fifa_stage": "289288",
+      "winner": "home",
+      "home_pens": 4,
+      "away_pens": 3,
+      "duration": "PENALTY_SHOOTOUT"
     },
     {
       "id": 97,
