@@ -7,7 +7,7 @@
     "display_tz": "Asia/Riyadh",
     "display_tz_label": "Riyadh",
     "total_matches": 104,
-    "updated_utc": "2026-07-11T22:44:14.729Z",
+    "updated_utc": "2026-07-11T23:29:01.339Z",
     "source": "api.fifa.com"
   },
   "groups": {
@@ -2437,7 +2437,7 @@
       "home_feed": "Winner Match 91",
       "away_feed": "Winner Match 92",
       "home_score": 1,
-      "away_score": 1,
+      "away_score": 2,
       "status": "live",
       "fifa_id": "400021539",
       "fifa_stage": "289289"
