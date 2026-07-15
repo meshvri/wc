@@ -7,7 +7,7 @@
     "display_tz": "Asia/Riyadh",
     "display_tz_label": "Riyadh",
     "total_matches": 104,
-    "updated_utc": "2026-07-15T20:58:08.017Z",
+    "updated_utc": "2026-07-15T22:06:15.881Z",
     "source": "api.fifa.com"
   },
   "groups": {
@@ -2489,7 +2489,7 @@
       "away_feed": "Winner Match 100",
       "home_score": 1,
       "away_score": 2,
-      "status": "live",
+      "status": "finished",
       "fifa_id": "400021540",
       "fifa_stage": "289290"
     },
